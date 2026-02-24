@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATALYST — Stock News Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --surface: #111318;
+    --surface2: #191c24;
+    --border: #222530;
+    --accent: #00ff88;
+    --accent2: #ff4444;
+    --accent3: #ffaa00;
+    --accent4: #4488ff;
+    --text: #e8eaf0;
+    --text-muted: #5a5f72;
+    --text-dim: #8890a8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    background: rgba(10,11,13,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,255,136,0.4);
+  }
+
+  .logo span { color: var(--text-muted); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Search Section */
+  .search-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .search-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .input-group {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .input-group input, .input-group select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,255,136,0.1);
+  }
+
+  .input-group select option { background: var(--surface2); }
+
+  .btn-analyze {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  .btn-analyze:hover {
+    background: #00cc6a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+  }
+
+  .btn-analyze:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Keyword chips */
+  .keyword-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1.2rem;
+  }
+
+  .kw-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .kw-chip:hover, .kw-chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,136,0.05);
+  }
+
+  .kw-chip.cat-ma { border-color: rgba(68,136,255,0.3); color: rgba(68,136,255,0.7); }
+  .kw-chip.cat-ma.active, .kw-chip.cat-ma:hover { border-color: var(--accent4); color: var(--accent4); background: rgba(68,136,255,0.05); }
+  .kw-chip.cat-bio { border-color: rgba(255,68,68,0.3); color: rgba(255,68,68,0.7); }
+  .kw-chip.cat-bio.active, .kw-chip.cat-bio:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(255,68,68,0.05); }
+  .kw-chip.cat-earn { border-color: rgba(255,170,0,0.3); color: rgba(255,170,0,0.7); }
+  .kw-chip.cat-earn.active, .kw-chip.cat-earn:hover { border-color: var(--accent3); color: var(--accent3); background: rgba(255,170,0,0.05); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.green::after { background: var(--accent); }
+  .stat-card.red::after { background: var(--accent2); }
+  .stat-card.yellow::after { background: var(--accent3); }
+  .stat-card.blue::after { background: var(--accent4); }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-card.green .stat-value { color: var(--accent); }
+  .stat-card.red .stat-value { color: var(--accent2); }
+  .stat-card.yellow .stat-value { color: var(--accent3); }
+  .stat-card.blue .stat-value { color: var(--accent4); }
+
+  /* Results section */
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+  }
+
+  .results-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  .sort-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* News Cards */
+  .news-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .news-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 0.4s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .news-card:hover {
+    border-color: rgba(255,255,255,0.15);
+    background: var(--surface2);
+    transform: translateX(3px);
+  }
+
+  .news-card.high-impact { border-left: 3px solid var(--accent); }
+  .news-card.medium-impact { border-left: 3px solid var(--accent3); }
+  .news-card.low-impact { border-left: 3px solid var(--text-muted); }
+  .news-card.negative-impact { border-left: 3px solid var(--accent2); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .ticker-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    background: rgba(0,255,136,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,255,136,0.2);
+    letter-spacing: 0.05em;
+  }
+
+  .keyword-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .keyword-tag.ma { border-color: rgba(68,136,255,0.4); color: var(--accent4); }
+  .keyword-tag.bio { border-color: rgba(255,68,68,0.4); color: var(--accent2); }
+  .keyword-tag.earn { border-color: rgba(255,170,0,0.4); color: var(--accent3); }
+
+  .market-cap-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    text-decoration: none;
+  }
+
+  .card-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .card-title a:hover { color: var(--accent); }
+
+  .card-summary {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .source-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+  }
+
+  .source-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border); }
+
+  .impact-score {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+  }
+
+  .impact-bar {
+    width: 60px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .impact-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* Loading state */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    gap: 1.5rem;
+  }
+
+  .loading-ring {
+    width: 50px; height: 50px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .loading-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  .empty-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    color: var(--text-dim);
+  }
+
+  .empty-sub {
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  /* Error state */
+  .error-banner {
+    background: rgba(255,68,68,0.05);
+    border: 1px solid rgba(255,68,68,0.2);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    color: var(--accent2);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* Ticker input hint */
+  .ticker-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0 1rem;
+  }
+
+  .divider-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CATALYST<span> // STOCK INTELLIGENCE</span></div>
+  <div class="header-right">
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span id="lastUpdated">READY</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Search Section -->
+  <div class="search-section">
+    <div class="section-label">// Analysis Configuration</div>
+    <div class="search-row">
+      <div class="input-group" style="max-width: 320px;">
+        <label>TICKER SYMBOLS (optional)</label>
+        <input type="text" id="tickerInput" placeholder="AAPL, MSFT, NVDA, or leave blank for market-wide">
+        <div class="ticker-hint">Comma-separated. Leave blank to scan all major stocks.</div>
+      </div>
+      <div class="input-group" style="max-width: 180px;">
+        <label>TIME RANGE</label>
+        <select id="timeRange">
+          <option value="today">Today</option>
+          <option value="week" selected>Past Week</option>
+          <option value="month">Past Month</option>
+        </select>
+      </div>
+      <div class="input-group" style="max-width: 180px;">
+        <label>NEWS SOURCE</label>
+        <select id="newsSource">
+          <option value="all">All Sources</option>
+          <option value="yahoo">Yahoo Finance</option>
+          <option value="marketwatch">MarketWatch</option>
+          <option value="google">Google News</option>
+        </select>
+      </div>
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+        ⚡ RUN ANALYSIS
+      </button>
+    </div>
+
+    <!-- Keyword chips -->
+    <div class="section-divider">
+      <div class="divider-label">Active Keywords</div>
+      <div class="divider-line"></div>
+    </div>
+    <div class="keyword-grid" id="keywordGrid"></div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar" id="statsBar" style="display:none;">
+    <div class="stat-card green">
+      <div class="stat-label">Stories Found</div>
+      <div class="stat-value" id="statTotal">0</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">M&A Events</div>
+      <div class="stat-value" id="statMA">0</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Biotech/FDA</div>
+      <div class="stat-value" id="statBio">0</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Earnings</div>
+      <div class="stat-value" id="statEarn">0</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div>
+    <div class="results-header">
+      <div class="results-title">CATALYST EVENTS</div>
+      <div class="sort-label">SORTED BY MARKET CAP ↓</div>
+    </div>
+    <div id="resultsContainer">
+      <div class="empty-state">
+        <div class="empty-icon">📡</div>
+        <div class="empty-title">Awaiting Analysis</div>
+        <div class="empty-sub">Configure your parameters above and click "Run Analysis" to scan for catalyst events across major news sources.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const KEYWORDS = {
+  'M&A': ['merger','acquisition','takeover','buyout','tender offer','definitive agreement','going private'],
+  'DISTRESS': ['bankruptcy','chapter 11','chapter 7','liquidation'],
+  'BIOTECH': ['fda approval','fda rejection','complete response letter','crl'],
+  'GUIDANCE': ['guidance raised','guidance lowered','profit warning'],
+  'EARNINGS': ['earnings beat','earnings miss','short squeeze'],
+  'DEALS': ['major contract','strategic partnership','collaboration agreement','supply agreement','multi-year deal','exclusive agreement'],
+  'GROWTH': ['expansion plan','new product launch']
+};
+
+const KW_CATEGORIES = {
+  'M&A': 'ma', 'DISTRESS': 'bio', 'BIOTECH': 'bio',
+  'GUIDANCE': 'earn', 'EARNINGS': 'earn', 'DEALS': 'ma', 'GROWTH': 'earn'
+};
+
+let activeKeywords = new Set();
+// Initialize all keywords as active
+Object.values(KEYWORDS).flat().forEach(k => activeKeywords.add(k));
+
+function initKeywordGrid() {
+  const grid = document.getElementById('keywordGrid');
+  grid.innerHTML = '';
+  Object.entries(KEYWORDS).forEach(([cat, kws]) => {
+    kws.forEach(kw => {
+      const chip = document.createElement('div');
+      chip.className = `kw-chip cat-${KW_CATEGORIES[cat]} active`;
+      chip.textContent = kw;
+      chip.onclick = () => toggleKeyword(kw, chip);
+      grid.appendChild(chip);
+    });
+  });
+}
+
+function toggleKeyword(kw, el) {
+  if (activeKeywords.has(kw)) {
+    activeKeywords.delete(kw);
+    el.classList.remove('active');
+  } else {
+    activeKeywords.add(kw);
+    el.classList.add('active');
+  }
+}
+
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  const tickers = document.getElementById('tickerInput').value;
+  const timeRange = document.getElementById('timeRange').value;
+  const newsSource = document.getElementById('newsSource').value;
+  const keywords = Array.from(activeKeywords);
+
+  if (keywords.length === 0) {
+    alert('Please select at least one keyword.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ SCANNING...';
+  document.getElementById('statsBar').style.display = 'none';
+  document.getElementById('lastUpdated').textContent = 'SCANNING...';
+
+  document.getElementById('resultsContainer').innerHTML = `
+    <div class="loading-state">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Scanning News Sources</div>
+      <div class="loading-sub">Analyzing ${newsSource === 'all' ? 'Yahoo Finance, MarketWatch & Google News' : newsSource} for catalyst events matching ${keywords.length} keywords...</div>
+    </div>
+  `;
+
+  const prompt = buildPrompt(tickers, timeRange, newsSource, keywords);
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.error) throw new Error(data.error.message);
+
+    const fullText = data.content
+      .map(item => item.type === "text" ? item.text : "")
+      .filter(Boolean)
+      .join("\n");
+
+    parseAndRender(fullText);
+  } catch (err) {
+    document.getElementById('resultsContainer').innerHTML = `
+      <div class="error-banner">⚠ API ERROR: ${err.message}</div>
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-title">Analysis Failed</div>
+        <div class="empty-sub">There was an error connecting to the AI analysis engine. Please try again.</div>
+      </div>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ RUN ANALYSIS';
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+  }
+}
+
+function buildPrompt(tickers, timeRange, source, keywords) {
+  const tickerStr = tickers.trim() ? `Focus on these tickers: ${tickers}. ` : 'Scan all major publicly traded US companies. ';
+  const timeStr = { today: 'today (last 24 hours)', week: 'the past 7 days', month: 'the past 30 days' }[timeRange];
+  const sourceStr = source === 'all' ? 'Yahoo Finance News, MarketWatch, and Google News' : source;
+
+  return `You are a financial analyst AI. Search ${sourceStr} for news from ${timeStr}. ${tickerStr}
+
+Find news articles that match ANY of these keywords/topics: ${keywords.join(', ')}.
+
+For each relevant news story found, respond with a JSON array. Each item must have:
+- ticker: stock ticker symbol (e.g. "AAPL") or "UNKNOWN" if not found
+- company: full company name
+- marketCap: estimated market cap category ("mega" >200B, "large" 10-200B, "mid" 2-10B, "small" <2B, "unknown")
+- marketCapValue: numeric estimate in billions (0 if unknown)
+- title: exact article headline
+- source: news source name
+- date: publication date
+- url: article URL if available, else "#"
+- keyword: which keyword from the list was matched
+- category: one of "M&A", "DISTRESS", "BIOTECH", "GUIDANCE", "EARNINGS", "DEALS", "GROWTH"
+- summary: 2-3 sentence summary of the news and its potential market impact
+- impact: "high", "medium", or "low" (based on potential price movement)
+- sentiment: "positive", "negative", or "neutral"
+
+Return ONLY a valid JSON array, no other text. Sort results by marketCapValue descending (largest first). Find at least 8-15 stories if possible.`;
+}
+
+function parseAndRender(text) {
+  let items = [];
+  
+  try {
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      items = JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    // Try to extract partial data
+    console.warn('JSON parse failed, attempting fallback:', e);
+  }
+
+  if (!items || items.length === 0) {
+    document.getElementById('resultsContainer').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">No Catalyst Events Found</div>
+        <div class="empty-sub">No news matching your selected keywords was found for the specified time range. Try expanding the time range or selecting more keywords.</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort by market cap
+  items.sort((a, b) => (b.marketCapValue || 0) - (a.marketCapValue || 0));
+
+  // Update stats
+  const statsBar = document.getElementById('statsBar');
+  statsBar.style.display = 'grid';
+  document.getElementById('statTotal').textContent = items.length;
+  document.getElementById('statMA').textContent = items.filter(i => ['M&A','DEALS'].includes(i.category)).length;
+  document.getElementById('statBio').textContent = items.filter(i => i.category === 'BIOTECH').length;
+  document.getElementById('statEarn').textContent = items.filter(i => ['EARNINGS','GUIDANCE'].includes(i.category)).length;
+
+  const container = document.getElementById('resultsContainer');
+  container.innerHTML = '<div class="news-grid" id="newsGrid"></div>';
+  const grid = document.getElementById('newsGrid');
+
+  items.forEach((item, idx) => {
+    const card = buildCard(item, idx);
+    grid.appendChild(card);
+  });
+}
+
+function buildCard(item, idx) {
+  const card = document.createElement('div');
+  
+  const impactClass = {
+    high: item.sentiment === 'negative' ? 'negative-impact' : 'high-impact',
+    medium: 'medium-impact',
+    low: 'low-impact'
+  }[item.impact] || 'low-impact';
+
+  const catClass = { 'M&A': 'ma', 'DEALS': 'ma', 'BIOTECH': 'bio', 'DISTRESS': 'bio', 'EARNINGS': 'earn', 'GUIDANCE': 'earn', 'GROWTH': 'earn' }[item.category] || '';
+
+  const capLabel = {
+    mega: `~$${item.marketCapValue}B MEGA`, large: `~$${item.marketCapValue}B LARGE`,
+    mid: `~$${item.marketCapValue}B MID`, small: `~$${item.marketCapValue}B SMALL`, unknown: 'CAP UNKNOWN'
+  }[item.marketCap] || 'CAP UNKNOWN';
+
+  const impactPct = { high: 85, medium: 50, low: 25 }[item.impact] || 30;
+  const impactColor = item.sentiment === 'negative' ? 'var(--accent2)' : item.impact === 'high' ? 'var(--accent)' : item.impact === 'medium' ? 'var(--accent3)' : 'var(--text-muted)';
+
+  card.className = `news-card ${impactClass}`;
+  card.style.animationDelay = `${idx * 0.05}s`;
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-meta">
+        ${item.ticker && item.ticker !== 'UNKNOWN' ? `<span class="ticker-badge">$${item.ticker}</span>` : ''}
+        <span class="keyword-tag ${catClass}">${item.category || item.keyword}</span>
+        ${item.keyword && item.keyword !== item.category ? `<span class="keyword-tag">${item.keyword}</span>` : ''}
+      </div>
+      <div class="market-cap-badge">${capLabel}</div>
+    </div>
+    <div class="card-title">
+      <a href="${item.url || '#'}" target="_blank" rel="noopener">${item.title || 'No title'}</a>
+    </div>
+    <div class="card-summary">${item.summary || 'No summary available.'}</div>
+    <div class="card-footer">
+      <div class="source-info">
+        <span>${item.source || 'Unknown source'}</span>
+        <div class="source-dot"></div>
+        <span>${item.date || 'Unknown date'}</span>
+        ${item.company ? `<div class="source-dot"></div><span>${item.company}</span>` : ''}
+      </div>
+      <div class="impact-score">
+        <span style="color: ${impactColor}; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase;">${item.impact || 'low'} impact</span>
+        <div class="impact-bar">
+          <div class="impact-fill" style="width: ${impactPct}%; background: ${impactColor};"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+// Init
+initKeywordGrid();
+</script>
+</body>
+</html>
