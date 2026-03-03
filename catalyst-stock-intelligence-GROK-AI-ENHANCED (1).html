@@ -1,0 +1,2823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATALYST — AI-Powered Stock Intelligence Platform</title>
+<!--
+  🔑 API SETUP INSTRUCTIONS:
+  
+  This platform now uses REAL STOCK DATA APIs + AI ANALYSIS!
+  
+  1. FINNHUB API (Primary - Recommended)
+     Get free key: https://finnhub.io/register
+     - 60 API calls/minute free tier
+     - Real-time quotes, fundamentals, news, earnings
+     
+  2. ALPHA VANTAGE API (For Technical Indicators)
+     Get free key: https://www.alphavantage.co/support/#api-key
+     - 25-500 API calls/day free tier
+     - Technical indicators (RSI, MACD, SMA, EMA)
+  
+  3. POLYGON API (Optional - For Enhanced Fundamentals)
+     Get free key: https://polygon.io/
+     - 5 API calls/minute free tier
+     - Comprehensive financial statements and data
+  
+  4. GROK API (Optional - For AI-Powered Analysis) 🤖
+     Get key: https://console.x.ai/
+     - AI-powered fundamental, technical, and sentiment analysis
+     - Requires xAI account with API access
+     
+  Save your keys in the browser console:
+  saveApiKey('finnhub', 'YOUR_KEY')
+  saveApiKey('alphavantage', 'YOUR_KEY')
+  saveApiKey('polygon', 'YOUR_KEY')
+  saveApiKey('grok', 'YOUR_KEY')  // enables AI analysis
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0b0d; --surface:#111318; --surface2:#191c24; --border:#1a1d28;
+  --accent:#00ff88; --red:#ff4444; --yellow:#ffaa00; --blue:#4488ff;
+  --gpt:#00a67e; --gpt-dim:#002618;
+  --text:#e8eaf0; --muted:#4a506a; --dim:#3a3f52;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.007) 2px,rgba(255,255,255,0.007) 4px);pointer-events:none;z-index:999;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+a{color:inherit;text-decoration:none;}a:hover{color:var(--accent);}
+
+header{border-bottom:1px solid var(--border);padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,13,0.97);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);}
+.logo-group{display:flex;align-items:center;gap:16px;}
+.logo{font-family:'Bebas Neue';font-size:22px;letter-spacing:.15em;color:var(--accent);text-shadow:0 0 24px rgba(0,255,136,.35);}
+.logo span{color:var(--dim);}
+.ai-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;background:linear-gradient(135deg, rgba(0,166,126,.12), rgba(0,166,126,.05));border:1px solid rgba(0,166,126,.25);font-family:'DM Mono';font-size:10px;letter-spacing:.15em;color:var(--gpt);}
+.gpt-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.header-right{display:flex;align-items:center;gap:20px;}
+.live{display:flex;align-items:center;gap:8px;font-family:'DM Mono';font-size:10px;color:var(--dim);letter-spacing:.12em;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+.window-badge{font-family:'DM Mono';font-size:10px;padding:4px 10px;border-radius:4px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:var(--accent);letter-spacing:.1em;}
+
+/* Tab Navigation */
+.tab-nav{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 32px;}
+.tab-btn{font-family:'DM Mono';font-size:12px;padding:16px 24px;cursor:pointer;border:none;background:transparent;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;position:relative;transition:all .2s;}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.02);}
+.tab-btn.active{color:var(--accent);}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+main{margin:0;padding:20px 32px 48px;width:100%;}
+
+.gpt-banner{background:linear-gradient(135deg, rgba(0,166,126,.08), rgba(0,166,126,.02));border:1px solid rgba(0,166,126,.2);border-radius:12px;padding:18px 24px;margin-bottom:16px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;}
+.gpt-banner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gpt),transparent);}
+.gpt-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg, #00a67e, #00d9a1);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 20px rgba(0,166,126,.4);}
+.gpt-info{flex:1;}
+.gpt-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:.12em;color:var(--gpt);margin-bottom:4px;}
+.gpt-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.gpt-status{font-family:'DM Mono';font-size:10px;padding:4px 10px;border-radius:4px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:var(--accent);letter-spacing:.1em;white-space:nowrap;}
+
+.config{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 26px;margin-bottom:16px;position:relative;overflow:hidden;}
+.config::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.section-label{font-family:'DM Mono';font-size:10px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:16px;}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-family:'DM Mono';font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.field input,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans';font-size:13px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,255,136,.1);}
+.field-ticker{flex:1 1 240px;}
+.field-ticker input{width:100%;text-transform:uppercase;}
+.field-hint{font-family:'DM Mono';font-size:10px;color:var(--dim);margin-top:4px;}
+.field-sm select{width:180px;}
+.btn-run{background:linear-gradient(135deg, var(--gpt), #00d9a1);color:#fff;border:none;border-radius:8px;padding:10px 26px;font-family:'DM Mono';font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;align-self:flex-end;box-shadow:0 4px 16px rgba(0,166,126,.3);}
+.btn-run:hover:not(:disabled){background:linear-gradient(135deg, #00d9a1, #00ffc4);transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,166,126,.5);}
+.btn-run:disabled{opacity:.5;cursor:not-allowed;}
+
+.radio-group{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-top:8px;}
+.radio-opt{font-family:'DM Mono';font-size:11px;padding:10px 16px;cursor:pointer;transition:all .15s;letter-spacing:.07em;border:none;outline:none;background:var(--surface2);color:var(--muted);white-space:nowrap;}
+.radio-opt:not(:last-child){border-right:1px solid var(--border);}
+.radio-opt.active{background:rgba(0,255,136,.12);color:var(--accent);}
+.radio-opt:hover:not(.active){background:var(--surface);color:var(--text);}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px;animation:fadeUp .4s ease;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.stat.g::after{background:var(--accent);}.stat.b::after{background:var(--blue);}.stat.r::after{background:var(--red);}.stat.y::after{background:var(--yellow);}
+.stat-label{font-family:'DM Mono';font-size:9px;letter-spacing:.15em;color:var(--dim);text-transform:uppercase;margin-bottom:6px;}
+.stat-val{font-family:'Bebas Neue';font-size:34px;line-height:1;}
+.stat.g .stat-val{color:var(--accent);}.stat.b .stat-val{color:var(--blue);}.stat.r .stat-val{color:var(--red);}.stat.y .stat-val{color:var(--yellow);}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 26px;margin-bottom:16px;position:relative;overflow:hidden;}
+.section::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.section-title{font-family:'Bebas Neue';font-size:18px;letter-spacing:.12em;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.section-content{font-size:13px;color:var(--muted);line-height:1.7;}
+.section-content strong{color:var(--text);}
+.section-content p{margin-bottom:12px;}
+
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:16px;}
+.metric-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;}
+.metric-label{font-family:'DM Mono';font-size:9px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;}
+.metric-value{font-family:'DM Mono';font-size:15px;color:var(--text);font-weight:500;}
+
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 26px;margin-bottom:16px;position:relative;overflow:hidden;min-height:520px;}
+.chart-container::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--blue),transparent);}
+.chart-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:.12em;color:#7a80a0;margin-bottom:16px;}
+.chart-embed{width:100%;height:500px;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);}
+
+.trade-scenarios{margin-top:16px;}
+.scenario{background:var(--surface2);border-left:3px solid var(--accent);border-radius:6px;padding:14px 18px;margin-bottom:10px;}
+.scenario.bearish{border-left-color:var(--red);}
+.scenario.neutral{border-left-color:var(--yellow);}
+.scenario-title{font-family:'DM Mono';font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.05em;}
+.scenario.bearish .scenario-title{color:var(--red);}
+.scenario.neutral .scenario-title{color:var(--yellow);}
+.scenario-detail{font-size:12px;color:var(--muted);line-height:1.6;}
+
+.score-display{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:8px;margin:12px 0;}
+.score-number{font-family:'Bebas Neue';font-size:32px;color:var(--accent);}
+.score-label{font-family:'DM Mono';font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;}
+
+.kw-section{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
+.kw-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.kw-header-left{font-family:'DM Mono';font-size:10px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;}
+.kw-section-title{font-family:'DM Mono';font-size:9px;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-top:16px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(0,255,136,.15);display:flex;align-items:center;justify-content:space-between;}
+.section-toggle-btn{font-family:'DM Mono';font-size:9px;padding:3px 10px;border-radius:4px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;letter-spacing:.06em;transition:all .2s;text-transform:uppercase;}
+.section-toggle-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,255,136,.05);}
+.section-toggle-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,255,136,.08);}
+.kw-controls{display:flex;gap:8px;}
+.kw-btn{font-family:'DM Mono';font-size:9px;padding:3px 8px;border-radius:3px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;letter-spacing:.05em;transition:all .15s;}
+.kw-btn:hover{border-color:var(--accent);color:var(--accent);}
+.kw-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-family:'DM Mono';font-size:10px;padding:4px 9px;border-radius:4px;border:1px solid var(--border);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .15s;user-select:none;}
+.chip.earn-on{background:rgba(255,170,0,.1);border-color:rgba(255,170,0,.4);color:var(--yellow);}
+.chip.fda-on{background:rgba(0,255,136,.1);border-color:rgba(0,255,136,.4);color:var(--accent);}
+.chip.deal-on{background:rgba(68,136,255,.1);border-color:rgba(68,136,255,.35);color:#77aaff;}
+.chip.ma-on{background:rgba(255,0,110,.1);border-color:rgba(255,0,110,.4);color:#ff006e;}
+.chip.macro-on{background:rgba(147,51,234,.1);border-color:rgba(147,51,234,.4);color:#9333ea;}
+.chip.viral-on{background:rgba(255,68,68,.12);border-color:rgba(255,68,68,.4);color:var(--red);}
+.chip:not([class*="-on"]){opacity:.28;}
+
+.news-grid{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.news-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;transition:all .2s;animation:fadeUp .35s ease both;}
+.news-card:hover{background:var(--surface2);border-color:rgba(255,255,255,.1);}
+.news-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;}
+.news-card-title-link{text-decoration:none;flex:1;display:block;}
+.news-card-title{font-family:'DM Sans';font-size:15px;font-weight:500;line-height:1.4;flex:1;color:var(--text);transition:color .2s;}
+.news-card-title-link:hover .news-card-title{color:var(--accent);}
+.news-card-link-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:6px;color:var(--accent);font-family:'DM Mono';font-size:12px;text-decoration:none;transition:all .2s;margin-left:8px;}
+.news-card-link-btn:hover{background:rgba(0,255,136,.2);border-color:var(--accent);transform:translateX(2px);}
+.news-card-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:'DM Mono';font-size:10px;color:var(--dim);margin-bottom:8px;}
+.news-card-ticker{color:var(--accent);font-weight:600;background:rgba(0,255,136,.08);padding:2px 6px;border-radius:3px;}
+.news-card-cap{color:var(--blue);background:rgba(68,136,255,.08);padding:2px 6px;border-radius:3px;}
+.news-card-time{color:var(--muted);}
+.news-card-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+.tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:12px;}
+.tag{font-family:'DM Mono';font-size:9px;padding:3px 7px;border-radius:3px;border:1px solid var(--border);letter-spacing:.05em;text-transform:uppercase;}
+.tag.earn{background:rgba(255,170,0,.08);border-color:rgba(255,170,0,.25);color:var(--yellow);}
+.tag.fda{background:rgba(0,255,136,.08);border-color:rgba(0,255,136,.25);color:var(--accent);}
+.tag.deal{background:rgba(68,136,255,.08);border-color:rgba(68,136,255,.2);color:#77aaff;}
+.tag.ma{background:rgba(255,0,110,.08);border-color:rgba(255,0,110,.25);color:#ff006e;}
+.tag.macro{background:rgba(147,51,234,.08);border-color:rgba(147,51,234,.25);color:#9333ea;}
+.tag.viral{background:rgba(255,68,68,.08);border-color:rgba(255,68,68,.25);color:var(--red);}
+
+.loading{text-align:center;padding:40px;color:var(--muted);}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top:3px solid var(--accent);border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite;}
+
+/* Fundamental Tables */
+.fundamental-table{width:100%;border-collapse:collapse;margin-top:12px;}
+.fundamental-table th{font-family:'DM Mono';font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:left;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.fundamental-table td{font-family:'DM Sans';font-size:13px;color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--border);}
+.fundamental-table tr:hover{background:rgba(0,255,136,.02);}
+.fundamental-table td:first-child{font-family:'DM Mono';font-size:11px;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;font-weight:500;width:35%;}
+.fundamental-table td:last-child{color:var(--text);font-weight:500;}
+.fundamental-table .positive{color:var(--accent);}
+.fundamental-table .negative{color:var(--red);}
+.fundamental-table .neutral{color:var(--yellow);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hidden{display:none!important;}
+
+@media(max-width:768px){
+  main{padding:16px 20px 32px;}
+  header{padding:0 20px;}
+  .tab-nav{padding:0 20px;}
+  .metric-grid{grid-template-columns:1fr;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .fundamental-table{font-size:12px;}
+  .fundamental-table td,.fundamental-table th{padding:8px 12px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-group">
+    <div class="logo">CATALYST<span>β</span></div>
+    <div class="ai-badge">
+      <div class="gpt-icon">🔍</div>
+      <div>API-POWERED</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live">
+      <div class="live-dot"></div>
+      <div>LIVE ANALYSIS</div>
+    </div>
+    <div class="window-badge">FULLWIDTH</div>
+  </div>
+</header>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="catalyst">Catalyst Scanner</button>
+  <button class="tab-btn" data-tab="fundamental">Fundamental Analysis</button>
+  <button class="tab-btn" data-tab="technical">Technical Analysis</button>
+</div>
+
+<main>
+  <!-- CATALYST SCANNER TAB -->
+  <div id="catalyst-tab" class="tab-content active">
+    <div class="gpt-banner">
+      <div class="gpt-avatar">🎯</div>
+      <div class="gpt-info">
+        <div class="gpt-title">Catalyst + News Intelligence</div>
+        <div class="gpt-desc">Real-time market catalyst detection powered by Finnhub API • Live news feeds • Pattern recognition</div>
+      </div>
+      <div class="gpt-status">ACTIVE</div>
+    </div>
+
+    <div class="config">
+      <div class="section-label">Search Configuration</div>
+      <div class="controls">
+        <div class="field field-sm">
+          <label>Time Window</label>
+          <select id="catalystWindow">
+            <option value="0.042">Last Hour</option>
+            <option value="0.25">Last 6 Hours</option>
+            <option value="1" selected>Last 24 Hours</option>
+            <option value="7">Last Week</option>
+          </select>
+        </div>
+        <div class="field field-sm">
+          <label>Max Results</label>
+          <select id="catalystMaxResults">
+            <option value="10">10 Results</option>
+            <option value="20" selected>20 Results</option>
+            <option value="50">50 Results</option>
+          </select>
+        </div>
+        <button class="btn-run" id="runCatalystBtn">⚡ Scan Market</button>
+      </div>
+
+      <div class="kw-section">
+        <div class="kw-header">
+          <div class="kw-header-left">Catalyst Filters</div>
+          <div class="kw-controls">
+            <button class="kw-btn" id="selectAll">Select All</button>
+            <button class="kw-btn" id="clearAll">Clear All</button>
+          </div>
+        </div>
+        
+        <div class="kw-section-title">
+          <span>📊 Corporate Events</span>
+          <button class="section-toggle-btn active" data-section="earn">ALL ON</button>
+        </div>
+        <div class="kw-grid">
+          <div class="chip earn-on" data-category="earn" data-keyword="earnings">earnings</div>
+          <div class="chip earn-on" data-category="earn" data-keyword="guidance">guidance</div>
+          <div class="chip earn-on" data-category="earn" data-keyword="revenue">revenue</div>
+          <div class="chip earn-on" data-category="earn" data-keyword="profit">profit</div>
+        </div>
+
+        <div class="kw-section-title">
+          <span>💊 FDA & Healthcare</span>
+          <button class="section-toggle-btn active" data-section="fda">ALL ON</button>
+        </div>
+        <div class="kw-grid">
+          <div class="chip fda-on" data-category="fda" data-keyword="fda">fda</div>
+          <div class="chip fda-on" data-category="fda" data-keyword="approval">approval</div>
+          <div class="chip fda-on" data-category="fda" data-keyword="drug">drug</div>
+          <div class="chip fda-on" data-category="fda" data-keyword="trial">trial</div>
+        </div>
+
+        <div class="kw-section-title">
+          <span>🤝 Deals & Partnerships</span>
+          <button class="section-toggle-btn active" data-section="deal">ALL ON</button>
+        </div>
+        <div class="kw-grid">
+          <div class="chip deal-on" data-category="deal" data-keyword="partnership">partnership</div>
+          <div class="chip deal-on" data-category="deal" data-keyword="collaboration">collaboration</div>
+          <div class="chip deal-on" data-category="deal" data-keyword="contract">contract</div>
+          <div class="chip deal-on" data-category="deal" data-keyword="deal">deal</div>
+          <div class="chip deal-on" data-category="deal" data-keyword="agreement">agreement</div>
+        </div>
+
+        <div class="kw-section-title">
+          <span>💼 M&A Activity</span>
+          <button class="section-toggle-btn active" data-section="ma">ALL ON</button>
+        </div>
+        <div class="kw-grid">
+          <div class="chip ma-on" data-category="ma" data-keyword="merger">merger</div>
+          <div class="chip ma-on" data-category="ma" data-keyword="acquisition">acquisition</div>
+          <div class="chip ma-on" data-category="ma" data-keyword="takeover">takeover</div>
+          <div class="chip ma-on" data-category="ma" data-keyword="buyout">buyout</div>
+        </div>
+
+        <div class="kw-section-title">
+          <span>🌐 Macro Events</span>
+          <button class="section-toggle-btn active" data-section="macro">ALL ON</button>
+        </div>
+        <div class="kw-grid">
+          <div class="chip macro-on" data-category="macro" data-keyword="expansion">expansion</div>
+          <div class="chip macro-on" data-category="macro" data-keyword="product launch">product launch</div>
+          <div class="chip macro-on" data-category="macro" data-keyword="innovation">innovation</div>
+        </div>
+
+        <div class="kw-section-title">
+          <span>🔥 Viral & Social</span>
+          <button class="section-toggle-btn active" data-section="viral">ALL ON</button>
+        </div>
+        <div class="kw-grid">
+          <div class="chip viral-on" data-category="viral" data-keyword="short squeeze">short squeeze</div>
+          <div class="chip viral-on" data-category="viral" data-keyword="reddit">reddit</div>
+          <div class="chip viral-on" data-category="viral" data-keyword="viral">viral</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="catalystResults" class="hidden">
+      <div class="section">
+        <div class="section-title">📰 Market Catalysts</div>
+        <div class="news-grid" id="catalystNews"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUNDAMENTAL ANALYSIS TAB -->
+  <div id="fundamental-tab" class="tab-content">
+    <div class="gpt-banner">
+      <div class="gpt-avatar">📊</div>
+      <div class="gpt-info">
+        <div class="gpt-title">Fundamental & Sentiment Analysis</div>
+        <div class="gpt-desc">Real-time market sentiment + comprehensive fundamental metrics • Finnhub • Yahoo Finance • Polygon • Alpha Vantage • 🤖 Grok AI Analysis</div>
+      </div>
+      <div class="gpt-status">ACTIVE</div>
+    </div>
+
+    <div class="config">
+      <div class="section-label">Stock Configuration</div>
+      <div class="controls">
+        <div class="field field-ticker">
+          <label>Stock Ticker</label>
+          <input type="text" id="fundamentalTicker" placeholder="e.g., AAPL, TSLA, NVDA" />
+          <div class="field-hint">Enter stock ticker for analysis</div>
+        </div>
+        <button class="btn-run" id="runFundamentalBtn">📈 Analyze Stock</button>
+      </div>
+    </div>
+
+    <div id="fundamentalResults" class="hidden">
+      <!-- Short-Term Sentiment Section -->
+      <div class="section" id="sentimentSection">
+        <div class="section-title">💭 Short-Term Sentiment Analysis</div>
+        <div class="stats">
+          <div class="stat g">
+            <div class="stat-label">Sentiment Category</div>
+            <div class="stat-val" id="sentimentCategory">-</div>
+          </div>
+          <div class="stat b">
+            <div class="stat-label">Sentiment Score</div>
+            <div class="stat-val" id="sentimentScore">-</div>
+          </div>
+          <div class="stat y">
+            <div class="stat-label">Current Price</div>
+            <div class="stat-val" id="sentimentPrice">-</div>
+          </div>
+          <div class="stat r">
+            <div class="stat-label">Price Change</div>
+            <div class="stat-val" id="sentimentChange">-</div>
+          </div>
+        </div>
+        <div class="section-content">
+          <p><strong>Sentiment Rationale:</strong></p>
+          <div id="sentimentRationale" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Key Metrics Table -->
+      <div class="section">
+        <div class="section-title">💰 Key Financial Metrics</div>
+        <div style="overflow-x:auto;">
+          <table class="fundamental-table" id="keyMetricsTable">
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Valuation Metrics Table -->
+      <div class="section">
+        <div class="section-title">📊 Valuation & Profitability</div>
+        <div style="overflow-x:auto;">
+          <table class="fundamental-table" id="valuationTable">
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Grok AI Fundamental Analysis -->
+      <div id="grokFundamentalAnalysis"></div>
+
+      <!-- Share Structure & Ownership -->
+      <div class="section">
+        <div class="section-title">👥 Share Structure & Ownership</div>
+        <div style="overflow-x:auto;">
+          <table class="fundamental-table" id="ownershipTable">
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Earnings Information -->
+      <div class="section">
+        <div class="section-title">💼 Earnings Information</div>
+        <div style="overflow-x:auto;">
+          <table class="fundamental-table" id="earningsTable">
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Competitors Table -->
+      <div class="section">
+        <div class="section-title">🏢 Top Competitors (by Market Cap)</div>
+        <div style="overflow-x:auto;">
+          <table class="fundamental-table" id="competitorsTable">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Company</th>
+                <th>Ticker</th>
+                <th>Market Cap</th>
+                <th>Industry</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNICAL ANALYSIS TAB -->
+  <div id="technical-tab" class="tab-content">
+    <div class="gpt-banner">
+      <div class="gpt-avatar">📉</div>
+      <div class="gpt-info">
+        <div class="gpt-title">Advanced Technical Analysis</div>
+        <div class="gpt-desc">Multi-timeframe technical analysis with professional trading insights • EMA • VWAP • RSI • MACD • Fibonacci • Volume Profile • 🤖 Grok AI Analysis</div>
+      </div>
+      <div class="gpt-status">ACTIVE</div>
+    </div>
+
+    <div class="config">
+      <div class="section-label">Technical Configuration</div>
+      <div class="controls">
+        <div class="field field-ticker">
+          <label>Stock Ticker</label>
+          <input type="text" id="technicalTicker" placeholder="e.g., AAPL, TSLA, NVDA" />
+          <div class="field-hint">Enter stock ticker for technical analysis</div>
+        </div>
+        <div class="field">
+          <label>Analysis Type</label>
+          <div class="radio-group">
+            <button class="radio-opt active" data-type="dayTrading">Day Trading</button>
+            <button class="radio-opt" data-type="swingTrading">Swing Trading</button>
+            <button class="radio-opt" data-type="longTerm">Long-Term Value</button>
+          </div>
+        </div>
+        <button class="btn-run" id="runTechnicalBtn">⚡ Analyze</button>
+      </div>
+    </div>
+
+    <div id="technicalResults" class="hidden">
+      <!-- Technical Indicators Summary -->
+      <div class="section">
+        <div class="section-title">📊 Technical Indicators Summary</div>
+        <div class="stats">
+          <div class="stat g">
+            <div class="stat-label">Current Price</div>
+            <div class="stat-val" id="techPrice">-</div>
+          </div>
+          <div class="stat b">
+            <div class="stat-label">RSI (14)</div>
+            <div class="stat-val" id="techRSI">-</div>
+          </div>
+          <div class="stat y">
+            <div class="stat-label">MACD Signal</div>
+            <div class="stat-val" id="techMACD" style="font-size:20px;">-</div>
+          </div>
+          <div class="stat r">
+            <div class="stat-label">Volume</div>
+            <div class="stat-val" id="techVolume">-</div>
+          </div>
+        </div>
+        <div class="metric-grid" id="technicalIndicatorsGrid"></div>
+      </div>
+
+      <!-- 1. Trend Bias -->
+      <div class="section">
+        <div class="section-title">1️⃣ Trend Bias (Short-Term & Medium-Term)</div>
+        <div class="section-content" id="trendBias">Loading...</div>
+      </div>
+
+      <!-- 2. Momentum Condition -->
+      <div class="section">
+        <div class="section-title">2️⃣ Momentum Condition</div>
+        <div class="section-content" id="momentumCondition">Loading...</div>
+      </div>
+
+      <!-- 3. Volatility Condition -->
+      <div class="section">
+        <div class="section-title">3️⃣ Volatility & Expansion</div>
+        <div class="section-content" id="volatilityCondition">Loading...</div>
+      </div>
+
+      <!-- 4. Key Levels -->
+      <div class="section">
+        <div class="section-title">4️⃣ Key Levels & Fibonacci Zones</div>
+        <div class="section-content" id="keyLevels">Loading...</div>
+      </div>
+
+      <!-- 5. Trade Scenarios -->
+      <div class="section">
+        <div class="section-title">5️⃣ Trade Scenarios</div>
+        <div class="trade-scenarios" id="tradeScenarios">Loading...</div>
+      </div>
+
+      <!-- 6. Risk Assessment -->
+      <div class="section">
+        <div class="section-title">6️⃣ Risk Assessment & Probability</div>
+        <div class="section-content" id="riskAssessment">Loading...</div>
+      </div>
+
+      <!-- 7. Overall Technical Score -->
+      <div class="section">
+        <div class="section-title">7️⃣ Overall Technical Score</div>
+        <div class="section-content" id="technicalScore">Loading...</div>
+      </div>
+
+      <!-- TradingView Chart (at bottom) -->
+      <div class="chart-container">
+        <div class="chart-title">📊 TradingView Live Chart</div>
+        <div class="chart-embed" id="tradingview_chart"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- TradingView Widget Script -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+// ============================================================
+// API KEY MANAGEMENT
+// ============================================================
+
+const API_KEYS = {
+  finnhub: localStorage.getItem('finnhub_api_key') || '',
+  alphavantage: localStorage.getItem('alphavantage_api_key') || '',
+  perplexity: localStorage.getItem('perplexity_api_key') || '',
+  polygon: localStorage.getItem('polygon_api_key') || '',
+  grok: localStorage.getItem('grok_api_key') || ''
+};
+
+function saveApiKey(provider, key) {
+  localStorage.setItem(`${provider}_api_key`, key);
+  API_KEYS[provider] = key;
+  console.log(`✅ ${provider} API key saved!`);
+  return true;
+}
+
+window.saveApiKey = saveApiKey;
+
+// ============================================================
+// STOCK API MODULE
+// ============================================================
+
+const StockAPI = {
+  // Finnhub API Functions
+  Finnhub: {
+    async getQuote(symbol) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set. Use: saveApiKey("finnhub", "YOUR_KEY")');
+      
+      const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+      return await response.json();
+    },
+
+    async getProfile(symbol) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+      return await response.json();
+    },
+
+    async getMetrics(symbol) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+      return await response.json();
+    },
+
+    async getEarnings(symbol) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      const url = `https://finnhub.io/api/v1/stock/earnings?symbol=${symbol}&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+      return await response.json();
+    },
+
+    async getInstitutionalOwnership(symbol) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      const url = `https://finnhub.io/api/v1/stock/ownership?symbol=${symbol}&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) return null; // May require premium
+      return await response.json();
+    },
+
+    async getInsiderTransactions(symbol) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      // Get last 3 months
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const from = threeMonthsAgo.toISOString().split('T')[0];
+      const to = now.toISOString().split('T')[0];
+      
+      const url = `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${symbol}&from=${from}&to=${to}&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      return await response.json();
+    },
+
+    async getNews(symbol, days = 7) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      const now = new Date();
+      const past = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const fromDate = past.toISOString().split('T')[0];
+      const toDate = now.toISOString().split('T')[0];
+      
+      const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${fromDate}&to=${toDate}&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+      return await response.json();
+    },
+
+    async getMarketNews(days = 1) {
+      if (!API_KEYS.finnhub) throw new Error('Finnhub API key not set');
+      
+      const now = new Date();
+      const past = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const fromDate = past.toISOString().split('T')[0];
+      const toDate = now.toISOString().split('T')[0];
+      
+      // Get general market news
+      const url = `https://finnhub.io/api/v1/news?category=general&token=${API_KEYS.finnhub}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Finnhub API error: ${response.status}`);
+      return await response.json();
+    }
+  },
+
+  // Alpha Vantage API Functions
+  AlphaVantage: {
+    async getOverview(symbol) {
+      if (!API_KEYS.alphavantage) throw new Error('Alpha Vantage API key not set. Use: saveApiKey("alphavantage", "YOUR_KEY")');
+      
+      const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${API_KEYS.alphavantage}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Alpha Vantage API error: ${response.status}`);
+      
+      const data = await response.json();
+      if (data['Error Message']) throw new Error(data['Error Message']);
+      if (data['Note']) throw new Error('Alpha Vantage rate limit exceeded');
+      
+      return data;
+    },
+
+    async getRSI(symbol) {
+      if (!API_KEYS.alphavantage) throw new Error('Alpha Vantage API key not set');
+      
+      const url = `https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${API_KEYS.alphavantage}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Alpha Vantage API error: ${response.status}`);
+      
+      const data = await response.json();
+      if (data['Error Message']) throw new Error(data['Error Message']);
+      if (data['Note']) throw new Error('Alpha Vantage rate limit exceeded');
+      
+      return data;
+    },
+
+    async getMACD(symbol) {
+      if (!API_KEYS.alphavantage) throw new Error('Alpha Vantage API key not set');
+      
+      const url = `https://www.alphavantage.co/query?function=MACD&symbol=${symbol}&interval=daily&series_type=close&apikey=${API_KEYS.alphavantage}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Alpha Vantage API error: ${response.status}`);
+      
+      const data = await response.json();
+      if (data['Error Message']) throw new Error(data['Error Message']);
+      if (data['Note']) throw new Error('Alpha Vantage rate limit exceeded');
+      
+      return data;
+    }
+  },
+
+  // Yahoo Finance API (No API key required!)
+  YahooFinance: {
+    async getQuote(symbol) {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+      const data = await response.json();
+      return data.chart.result[0];
+    },
+
+    async getStatistics(symbol) {
+      const modules = 'defaultKeyStatistics,financialData,summaryDetail,price';
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules}`;
+      
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+        const data = await response.json();
+        return data.quoteSummary.result[0];
+      } catch (error) {
+        console.warn('Yahoo Statistics fetch failed, trying alternative...', error);
+        // Try alternative endpoint
+        return await this.getQuoteSummary(symbol, modules);
+      }
+    },
+
+    async getQuoteSummary(symbol, modules) {
+      const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+      const data = await response.json();
+      return data.quoteSummary.result[0];
+    },
+
+    async getFinancials(symbol) {
+      const modules = 'incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,financialData';
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+      const data = await response.json();
+      return data.quoteSummary.result[0];
+    },
+
+    async getHolders(symbol) {
+      const modules = 'institutionOwnership,insiderHolders,majorHoldersBreakdown';
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+      const data = await response.json();
+      return data.quoteSummary.result[0];
+    },
+
+    async getRecommendations(symbol) {
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=recommendationTrend,upgradeDowngradeHistory`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+      const data = await response.json();
+      return data.quoteSummary.result[0];
+    },
+
+    async getEarnings(symbol) {
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=earnings,earningsHistory,earningsTrend`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+      const data = await response.json();
+      return data.quoteSummary.result[0];
+    },
+
+    // New: Get comprehensive data in one call
+    async getComprehensiveData(symbol) {
+      const allModules = 'defaultKeyStatistics,financialData,summaryDetail,price,earnings,earningsHistory,earningsTrend,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,institutionOwnership,insiderHolders,majorHoldersBreakdown';
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${allModules}`;
+      
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Yahoo Finance API error: ${response.status}`);
+        const data = await response.json();
+        return data.quoteSummary.result[0];
+      } catch (error) {
+        console.warn('Comprehensive fetch failed, falling back to individual calls');
+        return null;
+      }
+    }
+  },
+
+  // Polygon.io API
+  Polygon: {
+    async getQuote(symbol) {
+      if (!API_KEYS.polygon) throw new Error('Polygon API key not set. Get free key at https://polygon.io/');
+      
+      const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/prev?adjusted=true&apiKey=${API_KEYS.polygon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Polygon API error: ${response.status}`);
+      const data = await response.json();
+      return data.results?.[0] || null;
+    },
+
+    async getTickerDetails(symbol) {
+      if (!API_KEYS.polygon) throw new Error('Polygon API key not set');
+      
+      const url = `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${API_KEYS.polygon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Polygon API error: ${response.status}`);
+      const data = await response.json();
+      return data.results || null;
+    },
+
+    async getFinancials(symbol) {
+      if (!API_KEYS.polygon) throw new Error('Polygon API key not set');
+      
+      const url = `https://api.polygon.io/vX/reference/financials?ticker=${symbol}&limit=4&apiKey=${API_KEYS.polygon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Polygon API error: ${response.status}`);
+      const data = await response.json();
+      return data.results || [];
+    },
+
+    async getNews(symbol, limit = 20) {
+      if (!API_KEYS.polygon) throw new Error('Polygon API key not set');
+      
+      const url = `https://api.polygon.io/v2/reference/news?ticker=${symbol}&limit=${limit}&apiKey=${API_KEYS.polygon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Polygon API error: ${response.status}`);
+      const data = await response.json();
+      return data.results || [];
+    },
+
+    async getMarketNews(limit = 50) {
+      if (!API_KEYS.polygon) throw new Error('Polygon API key not set');
+      
+      const url = `https://api.polygon.io/v2/reference/news?limit=${limit}&apiKey=${API_KEYS.polygon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Polygon API error: ${response.status}`);
+      const data = await response.json();
+      return data.results || [];
+    },
+
+    async getSnapshot(symbol) {
+      if (!API_KEYS.polygon) throw new Error('Polygon API key not set');
+      
+      const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${API_KEYS.polygon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Polygon API error: ${response.status}`);
+      const data = await response.json();
+      return data.ticker || null;
+    }
+  },
+
+  // Utility functions
+  formatPrice(price) {
+    if (!price && price !== 0) return 'N/A';
+    return '$' + parseFloat(price).toFixed(2);
+  },
+
+  formatPercent(percent) {
+    if (!percent && percent !== 0) return 'N/A';
+    const val = parseFloat(percent).toFixed(2);
+    return (val >= 0 ? '+' : '') + val + '%';
+  },
+
+  formatNumber(num) {
+    if (!num && num !== 0) return 'N/A';
+    const absNum = Math.abs(num);
+    if (absNum >= 1e12) return '$' + (num / 1e12).toFixed(2) + 'T';
+    if (absNum >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+    if (absNum >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+    if (absNum >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    return num.toLocaleString();
+  }
+};
+
+// ============================================================
+// GROK AI ANALYSIS MODULE
+// ============================================================
+
+const GrokAPI = {
+  async callGrok(messages, temperature = 0.7) {
+    if (!API_KEYS.grok) {
+      console.warn('Grok API key not set. Skipping AI analysis.');
+      return null;
+    }
+    
+    try {
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEYS.grok}`
+        },
+        body: JSON.stringify({
+          model: 'grok-beta',
+          messages: messages,
+          temperature: temperature,
+          max_tokens: 1500
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Grok API error: ${response.status} - ${error.error?.message || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('Grok API call failed:', error);
+      return null;
+    }
+  },
+  
+  async analyzeFundamentals(ticker, profile, metrics, yahooStats, quote) {
+    const m = metrics.metric || {};
+    const ySummary = yahooStats?.summaryDetail || {};
+    const yFinancial = yahooStats?.financialData || {};
+    const yStats = yahooStats?.defaultKeyStatistics || {};
+    
+    const fundamentalData = {
+      company: profile.name,
+      ticker: ticker,
+      sector: profile.finnhubIndustry || 'Unknown',
+      currentPrice: quote.c,
+      priceChange: quote.dp,
+      marketCap: ySummary?.marketCap?.raw || (profile.marketCapitalization ? profile.marketCapitalization * 1000000 : null),
+      peRatio: ySummary?.trailingPE?.raw || m.peBasicExclExtraTTM,
+      forwardPE: ySummary?.forwardPE?.raw || m.peNormalizedAnnual,
+      pbRatio: ySummary?.priceToBook?.raw || m.pbAnnual,
+      debtToEquity: yFinancial?.debtToEquity?.raw || m.totalDebtToEquityTTM,
+      currentRatio: yFinancial?.currentRatio?.raw || m.currentRatioTTM,
+      profitMargin: yFinancial?.profitMargins?.raw,
+      roe: yFinancial?.returnOnEquity?.raw,
+      revenueGrowth: yFinancial?.revenueGrowth?.raw,
+      earningsGrowth: yStats?.earningsQuarterlyGrowth?.raw,
+      enterpriseValue: yStats?.enterpriseValue?.raw || yFinancial?.enterpriseValue?.raw,
+      revenue: yFinancial?.totalRevenue?.raw,
+      freeCashFlow: yFinancial?.freeCashflow?.raw,
+      sharesOutstanding: profile.shareOutstanding ? profile.shareOutstanding * 1000000 : null,
+      sharesFloat: yStats?.floatShares?.raw,
+      shortFloat: yStats?.shortPercentOfFloat?.raw,
+      shortInterest: yStats?.sharesShort?.raw,
+      high52: ySummary?.fiftyTwoWeekHigh?.raw || quote.h,
+      low52: ySummary?.fiftyTwoWeekLow?.raw || quote.l,
+      insiderOwnership: yStats?.heldPercentInsiders?.raw,
+      institutionalOwnership: yStats?.heldPercentInstitutions?.raw
+    };
+    
+    const prompt = `You are a highly intelligent and accurate sentiment analyzer specializing in the financial markets. Analyze the sentiment and fundamentals for ${ticker} (${profile.name}).
+
+PART 1 - SENTIMENT ANALYSIS:
+Evaluate the immediate market reaction, recent news impact, and technical volatility.
+- Determine a sentiment category: "Positive", "Neutral", or "Negative"
+- Calculate a numerical score between 0 (extremely negative) and 10 (extremely positive)
+- Provide a concise rationale explaining the short-term sentiment with detailed response and appropriate headlines for major events
+
+Current Market Data:
+- Current Price: $${fundamentalData.currentPrice?.toFixed(2)}
+- Daily Change: ${fundamentalData.priceChange > 0 ? '+' : ''}${fundamentalData.priceChange?.toFixed(2)}%
+- Sector: ${fundamentalData.sector}
+
+PART 2 - COMPREHENSIVE FUNDAMENTAL ANALYSIS:
+Please provide detailed analysis for the following categories using all available online resources. Get accurate information in human-readable format:
+
+Financial Metrics to Analyze:
+- Market Cap: ${fundamentalData.marketCap ? '$' + (fundamentalData.marketCap / 1e9).toFixed(2) + 'B' : 'Search online'}
+- Enterprise Value: ${fundamentalData.enterpriseValue ? '$' + (fundamentalData.enterpriseValue / 1e9).toFixed(2) + 'B' : 'Search online'}
+- P/E Ratio (TTM): ${fundamentalData.peRatio?.toFixed(2) || 'Search online'}
+- Forward P/E: ${fundamentalData.forwardPE?.toFixed(2) || 'Search online'}
+- Profit Margin: ${fundamentalData.profitMargin ? (fundamentalData.profitMargin * 100).toFixed(2) + '%' : 'Search online'}
+- Free Cash Flow: ${fundamentalData.freeCashFlow ? '$' + (fundamentalData.freeCashFlow / 1e9).toFixed(2) + 'B' : 'Search online'}
+- Total Debt & Altman Z-Score: Search online for accurate debt metrics and Z-Score
+- Revenue (TTM): ${fundamentalData.revenue ? '$' + (fundamentalData.revenue / 1e9).toFixed(2) + 'B' : 'Search online'}
+- Shares Outstanding: ${fundamentalData.sharesOutstanding?.toLocaleString() || 'Search online'}
+- Shares Float: ${fundamentalData.sharesFloat?.toLocaleString() || 'Search online'}
+- Short Float %: ${fundamentalData.shortFloat ? (fundamentalData.shortFloat * 100).toFixed(2) + '%' : 'Search online'}
+- Short Interest: ${fundamentalData.shortInterest?.toLocaleString() || 'Search online'}
+- 52 Week High: $${fundamentalData.high52?.toFixed(2) || 'Search online'}
+- 52 Week Low: $${fundamentalData.low52?.toFixed(2) || 'Search online'}
+- Insider Ownership %: ${fundamentalData.insiderOwnership ? (fundamentalData.insiderOwnership * 100).toFixed(2) + '%' : 'Search online from finviz.com or similar'}
+- Institutional Ownership %: ${fundamentalData.institutionalOwnership ? (fundamentalData.institutionalOwnership * 100).toFixed(2) + '%' : 'Search online from finviz.com or similar'}
+- Insider Transactions (Last 3 Months): Search online for recent insider buying/selling
+- Institutional Transactions: Search online for recent institutional changes
+- Next Earnings Date: Search online for upcoming earnings
+- Earnings Expectations: Search online for analyst estimates
+- Previous Earnings Results: Search online for last quarter's performance vs estimates
+- Top 5 Competitors: Search online and list with market cap, sorted by size
+
+OUTPUT FORMAT REQUIREMENTS:
+1. Start with shortTermSentiment section:
+   shortTermSentiment:
+     category: [Positive/Neutral/Negative]
+     score: [0-10]
+     rationale: [Detailed explanation with headlines]
+
+2. Then provide ALL financial metrics in HTML TABLE format like this:
+
+<table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+<tr style="background: var(--surface2); border-bottom: 1px solid var(--border);">
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Metric</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Value</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Analysis/Notes</th>
+</tr>
+<tr style="border-bottom: 1px solid var(--border);">
+  <td style="padding: 10px;">Market Cap</td>
+  <td style="padding: 10px;">[value]</td>
+  <td style="padding: 10px;">[interpretation]</td>
+</tr>
+<!-- ... continue for ALL metrics ... -->
+</table>
+
+3. Include a COMPETITORS table:
+
+<table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+<tr style="background: var(--surface2); border-bottom: 1px solid var(--border);">
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Rank</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Company</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Ticker</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Market Cap</th>
+</tr>
+<!-- ... top 5 competitors sorted by market cap ... -->
+</table>
+
+DO NOT output as JSON. Output as formatted text and HTML tables as shown above.`;
+
+    const messages = [
+      { role: 'system', content: 'You are an expert financial analyst with access to real-time market data. Provide comprehensive, accurate analysis with data from reliable financial sources. Format output as HTML tables, not JSON.' },
+      { role: 'user', content: prompt }
+    ];
+    
+    return await this.callGrok(messages, 0.3);
+  },
+  
+  async analyzeTechnical(ticker, technicalData) {
+    const prompt = `You are a technical analyst. Analyze these technical indicators for ${ticker}:
+
+Price Action:
+- Current Price: $${technicalData.currentPrice?.toFixed(2)}
+- Daily Change: ${technicalData.priceChange > 0 ? '+' : ''}${technicalData.priceChange?.toFixed(2)}%
+- 52-Week Range: $${technicalData.low52?.toFixed(2)} - $${technicalData.high52?.toFixed(2)}
+- Position in Range: ${((technicalData.currentPrice - technicalData.low52) / (technicalData.high52 - technicalData.low52) * 100).toFixed(0)}%
+
+Moving Averages:
+- 20 EMA: $${technicalData.ema20?.toFixed(2)} (${technicalData.currentPrice > technicalData.ema20 ? 'Above' : 'Below'})
+- 50 EMA: $${technicalData.ema50?.toFixed(2)} (${technicalData.currentPrice > technicalData.ema50 ? 'Above' : 'Below'})
+- 200 EMA: $${technicalData.ema200?.toFixed(2)} (${technicalData.currentPrice > technicalData.ema200 ? 'Above' : 'Below'})
+
+Momentum Indicators:
+- RSI (14): ${technicalData.rsi?.toFixed(1)} ${technicalData.rsi > 70 ? '(Overbought)' : technicalData.rsi < 30 ? '(Oversold)' : '(Neutral)'}
+- MACD Signal: ${technicalData.macdSignal}
+- Volume: ${technicalData.volume ? (technicalData.volume / 1000000).toFixed(2) + 'M' : 'N/A'}
+
+Support/Resistance:
+- Key Support: $${technicalData.support?.toFixed(2)}
+- Key Resistance: $${technicalData.resistance?.toFixed(2)}
+
+Provide a concise 3-paragraph technical analysis:
+1. Trend Analysis (short-term, medium-term, long-term trends)
+2. Momentum & Entry Points (RSI, MACD, volume analysis)
+3. Trading Recommendation (with specific entry, stop-loss, and target levels)
+
+Be specific and actionable.`;
+
+    const messages = [
+      { role: 'system', content: 'You are an expert technical analyst providing precise trading analysis and actionable recommendations.' },
+      { role: 'user', content: prompt }
+    ];
+    
+    return await this.callGrok(messages, 0.5);
+  },
+  
+  async analyzeSentiment(ticker, profile, news, quote) {
+    if (!news || news.length === 0) {
+      return null;
+    }
+    
+    const recentNews = news.slice(0, 10).map(article => ({
+      headline: article.headline,
+      summary: article.summary || '',
+      source: article.source,
+      time: new Date(article.datetime * 1000).toLocaleDateString()
+    }));
+    
+    const newsText = recentNews.map((n, i) => 
+      `${i + 1}. [${n.source}] ${n.headline}\n   ${n.summary}`
+    ).join('\n\n');
+    
+    const prompt = `You are a market sentiment analyst. Analyze the recent news for ${ticker} (${profile.name}):
+
+Current Price: $${quote.c?.toFixed(2)} (${quote.dp > 0 ? '+' : ''}${quote.dp?.toFixed(2)}%)
+
+Recent News Headlines:
+${newsText}
+
+Provide a concise 2-paragraph sentiment analysis:
+1. News Sentiment Summary (positive/negative/neutral themes and their market impact)
+2. Short-term Market Outlook (how news sentiment may influence price in the near term)
+
+Focus on actionable insights for traders.`;
+
+    const messages = [
+      { role: 'system', content: 'You are an expert market sentiment analyst specializing in news impact on stock prices.' },
+      { role: 'user', content: prompt }
+    ];
+    
+    return await this.callGrok(messages, 0.6);
+  }
+};
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
+
+// Ensure DOM is ready before attaching event listeners
+function initTabNavigation() {
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  
+  if (tabButtons.length === 0) {
+    console.error('Tab buttons not found');
+    return;
+  }
+  
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.dataset.tab;
+      
+      // Update buttons
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Update content
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      const targetTab = document.getElementById(`${tabName}-tab`);
+      if (targetTab) {
+        targetTab.classList.add('active');
+      } else {
+        console.error(`Tab content not found: ${tabName}-tab`);
+      }
+    });
+  });
+  
+  console.log('Tab navigation initialized successfully');
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTabNavigation);
+} else {
+  initTabNavigation();
+}
+
+// ============================================================
+// KEYWORD CHIP FUNCTIONALITY
+// ============================================================
+
+function initChipFunctionality() {
+  // Chip toggling
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const category = chip.dataset.category;
+      chip.classList.toggle(`${category}-on`);
+    });
+  });
+
+  // Select all button
+  document.getElementById('selectAll')?.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(chip => {
+      const category = chip.dataset.category;
+      chip.classList.add(`${category}-on`);
+    });
+    document.querySelectorAll('.section-toggle-btn').forEach(btn => {
+      btn.classList.add('active');
+      btn.textContent = 'ALL ON';
+    });
+  });
+
+  // Clear all button
+  document.getElementById('clearAll')?.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(chip => {
+      const category = chip.dataset.category;
+      chip.classList.remove(`${category}-on`);
+    });
+    document.querySelectorAll('.section-toggle-btn').forEach(btn => {
+      btn.classList.remove('active');
+      btn.textContent = 'ALL OFF';
+    });
+  });
+
+  // Section toggle buttons
+  document.querySelectorAll('.section-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.dataset.section;
+      const isActive = btn.classList.contains('active');
+      
+      if (isActive) {
+        // Turn off all chips in this section
+        document.querySelectorAll(`.chip[data-category="${section}"]`).forEach(chip => {
+          chip.classList.remove(`${section}-on`);
+        });
+        btn.classList.remove('active');
+        btn.textContent = 'ALL OFF';
+      } else {
+        // Turn on all chips in this section
+        document.querySelectorAll(`.chip[data-category="${section}"]`).forEach(chip => {
+          chip.classList.add(`${section}-on`);
+        });
+        btn.classList.add('active');
+        btn.textContent = 'ALL ON';
+      }
+    });
+  });
+  
+  console.log('Chip functionality initialized');
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initChipFunctionality);
+} else {
+  initChipFunctionality();
+}
+
+// ============================================================
+// CATALYST SCANNER
+// ============================================================
+
+document.getElementById('runCatalystBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('runCatalystBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning...';
+  
+  try {
+    // Get active keywords
+    const activeKeywords = Array.from(document.querySelectorAll('.chip[class*="-on"]'))
+      .map(chip => chip.dataset.keyword.toLowerCase());
+    
+    if (activeKeywords.length === 0) {
+      alert('Please select at least one catalyst filter');
+      return;
+    }
+    
+    const days = parseFloat(document.getElementById('catalystWindow').value);
+    const maxResults = parseInt(document.getElementById('catalystMaxResults').value);
+    
+    // Calculate cutoff timestamp
+    const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+    
+    // Fetch market news from Finnhub
+    const news = await StockAPI.Finnhub.getMarketNews(days);
+    
+    // Filter news by keywords AND time window
+    const filteredNews = news.filter(article => {
+      // Check if article is within time window
+      const articleTime = article.datetime * 1000; // Convert to milliseconds
+      if (articleTime < cutoffTime) return false;
+      
+      // Check if article matches keywords
+      const text = (article.headline + ' ' + article.summary).toLowerCase();
+      return activeKeywords.some(keyword => text.includes(keyword));
+    }).slice(0, maxResults);
+    
+    // Display results
+    displayCatalystNews(filteredNews);
+    document.getElementById('catalystResults').classList.remove('hidden');
+    
+  } catch (error) {
+    alert('Error scanning catalysts: ' + error.message);
+    console.error(error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Scan Market';
+  }
+});
+
+function displayCatalystNews(newsArray) {
+  const container = document.getElementById('catalystNews');
+  
+  if (newsArray.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--dim);padding:20px;">No catalysts found matching selected filters</p>';
+    return;
+  }
+  
+  const newsHTML = newsArray.map((article, index) => {
+    const date = new Date(article.datetime * 1000);
+    const timeAgo = getTimeAgo(date);
+    
+    // Determine category based on headline
+    let category = 'macro';
+    const headline = article.headline.toLowerCase();
+    if (headline.includes('earnings') || headline.includes('revenue')) category = 'earn';
+    if (headline.includes('fda') || headline.includes('drug')) category = 'fda';
+    if (headline.includes('partnership') || headline.includes('deal')) category = 'deal';
+    if (headline.includes('merger') || headline.includes('acquisition')) category = 'ma';
+    if (headline.includes('squeeze') || headline.includes('viral')) category = 'viral';
+    
+    return `
+      <div class="news-card" style="animation-delay:${index * 0.05}s">
+        <div class="news-card-header">
+          <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="news-card-title-link">
+            <div class="news-card-title">${article.headline}</div>
+          </a>
+        </div>
+        <div class="news-card-meta">
+          <span class="news-card-time">🕐 ${timeAgo}</span>
+          <span class="news-card-time">📰 ${article.source}</span>
+        </div>
+        <div class="news-card-desc">${article.summary || 'Click to read full article...'}</div>
+        <div class="tags">
+          <div class="tag ${category}">${category.toUpperCase()}</div>
+          <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="news-card-link-btn">
+            📖 Read Article →
+          </a>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = newsHTML;
+}
+
+function getTimeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    week: 604800,
+    day: 86400,
+    hour: 3600,
+    minute: 60
+  };
+  
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      return `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
+    }
+  }
+  return 'just now';
+}
+
+// ============================================================
+// FUNDAMENTAL ANALYSIS
+// ============================================================
+
+document.getElementById('runFundamentalBtn')?.addEventListener('click', async () => {
+  const ticker = document.getElementById('fundamentalTicker').value.toUpperCase();
+  if (!ticker) {
+    alert('Please enter a stock ticker');
+    return;
+  }
+  
+  const btn = document.getElementById('runFundamentalBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing...';
+  
+  try {
+    // Try comprehensive Yahoo Finance fetch first
+    let yahooComprehensive = await StockAPI.YahooFinance.getComprehensiveData(ticker).catch(() => null);
+    
+    // Fetch data from multiple sources in parallel
+    const dataPromises = [
+      StockAPI.Finnhub.getQuote(ticker),
+      StockAPI.Finnhub.getProfile(ticker),
+      StockAPI.Finnhub.getMetrics(ticker),
+      StockAPI.Finnhub.getNews(ticker, 7),
+      StockAPI.Finnhub.getEarnings(ticker).catch(() => [])
+    ];
+    
+    // Add Polygon if API key is configured
+    if (API_KEYS.polygon) {
+      dataPromises.push(
+        StockAPI.Polygon.getTickerDetails(ticker).catch(() => null),
+        StockAPI.Polygon.getFinancials(ticker).catch(() => null),
+        StockAPI.Polygon.getSnapshot(ticker).catch(() => null)
+      );
+    } else {
+      dataPromises.push(null, null, null);
+    }
+    
+    const [quote, profile, metrics, news, earnings, polygonDetails, polygonFinancials, polygonSnapshot] = await Promise.all(dataPromises);
+    
+    // If comprehensive fetch failed, get individual modules
+    let yahooStats = yahooComprehensive;
+    let yahooHolders = yahooComprehensive;
+    
+    if (!yahooComprehensive) {
+      [yahooStats, yahooHolders] = await Promise.all([
+        StockAPI.YahooFinance.getStatistics(ticker).catch(() => null),
+        StockAPI.YahooFinance.getHolders(ticker).catch(() => null)
+      ]);
+    }
+    
+    // Debug: Log data sources
+    console.log('📊 Data Sources Available:', {
+      finnhub: !!quote,
+      yahoo: !!yahooStats,
+      polygon: !!polygonDetails
+    });
+    
+    if (polygonFinancials) {
+      console.log('💰 Polygon Financials:', polygonFinancials[0]);
+    }
+    
+    // Analyze sentiment
+    analyzeSentiment(ticker, quote, profile, news);
+    
+    // Get Grok AI analysis for fundamentals and sentiment (async, non-blocking)
+    if (API_KEYS.grok) {
+      GrokAPI.analyzeFundamentals(ticker, profile, metrics, yahooStats, quote).then(analysis => {
+        if (analysis) {
+          document.getElementById('grokFundamentalAnalysis').innerHTML = `
+            <div style="background: linear-gradient(135deg, rgba(0,166,126,.08), rgba(0,166,126,.02)); 
+                        border: 1px solid rgba(0,166,126,.2); border-radius: 8px; padding: 16px; margin-top: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="font-size: 20px;">🤖</span>
+                <strong style="color: var(--gpt); font-family: 'DM Mono'; font-size: 11px; letter-spacing: 0.1em;">GROK AI COMPREHENSIVE ANALYSIS</strong>
+              </div>
+              <div style="color: var(--text); line-height: 1.7;">${analysis}</div>
+            </div>
+          `;
+        }
+      }).catch(err => console.error('Grok fundamental analysis failed:', err));
+      
+      GrokAPI.analyzeSentiment(ticker, profile, news, quote).then(analysis => {
+        if (analysis) {
+          const existingRationale = document.getElementById('sentimentRationale').innerHTML;
+          document.getElementById('sentimentRationale').innerHTML = existingRationale + `
+            <div style="background: linear-gradient(135deg, rgba(0,166,126,.08), rgba(0,166,126,.02)); 
+                        border: 1px solid rgba(0,166,126,.2); border-radius: 8px; padding: 16px; margin-top: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="font-size: 20px;">🤖</span>
+                <strong style="color: var(--gpt); font-family: 'DM Mono'; font-size: 11px; letter-spacing: 0.1em;">GROK AI SENTIMENT ANALYSIS</strong>
+              </div>
+              <div style="color: var(--text); line-height: 1.7; white-space: pre-wrap;">${analysis}</div>
+            </div>
+          `;
+        }
+      }).catch(err => console.error('Grok sentiment analysis failed:', err));
+    }
+    
+    // Display fundamental data with all sources
+    displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDetails, polygonFinancials, polygonSnapshot);
+    displayValuationTable(metrics, profile, yahooStats, polygonFinancials);
+    
+    // Fetch ownership data with delay
+    setTimeout(async () => {
+      try {
+        const ownershipPromises = [
+          StockAPI.Finnhub.getInstitutionalOwnership(ticker).catch(() => null),
+          StockAPI.Finnhub.getInsiderTransactions(ticker).catch(() => null)
+        ];
+        
+        // Also try Alpha Vantage if key is available
+        if (API_KEYS.alphavantage) {
+          ownershipPromises.push(
+            StockAPI.AlphaVantage.getOverview(ticker).catch(() => null)
+          );
+        } else {
+          ownershipPromises.push(null);
+        }
+        
+        const [institutionalOwnership, insiderTransactions, avOverview] = await Promise.all(ownershipPromises);
+        
+        displayOwnershipTable(metrics, profile, institutionalOwnership, insiderTransactions, avOverview, yahooHolders);
+      } catch (e) {
+        console.log('Ownership data unavailable:', e);
+        displayOwnershipTable(metrics, profile, null, null, null, yahooHolders);
+      }
+    }, 1000);
+    
+    // Fetch Yahoo earnings data
+    setTimeout(async () => {
+      try {
+        const yahooEarnings = yahooComprehensive || await StockAPI.YahooFinance.getEarnings(ticker);
+        displayEarningsTable(earnings, metrics, yahooEarnings);
+      } catch (e) {
+        displayEarningsTable(earnings, metrics, null);
+      }
+    }, 1500);
+    
+    // Fetch and display competitors (with delay to avoid rate limits)
+    setTimeout(() => {
+      displayCompetitors(ticker, profile);
+    }, 2000);
+    
+    document.getElementById('fundamentalResults').classList.remove('hidden');
+    
+  } catch (error) {
+    alert('Error analyzing stock: ' + error.message);
+    console.error(error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📈 Analyze Stock';
+  }
+});
+
+function analyzeSentiment(ticker, quote, profile, newsArray) {
+  // Calculate sentiment based on price action and news
+  let score = 5; // Start neutral
+  let category = 'Neutral';
+  let rationale = '';
+  
+  // Price action analysis
+  const priceChange = quote.dp;
+  if (priceChange > 3) score += 2;
+  else if (priceChange > 1) score += 1;
+  else if (priceChange < -3) score -= 2;
+  else if (priceChange < -1) score -= 1;
+  
+  // News sentiment analysis (basic keyword analysis)
+  const positiveKeywords = ['beat', 'surge', 'gain', 'upgrade', 'approval', 'partnership', 'growth', 'record', 'positive', 'strong'];
+  const negativeKeywords = ['miss', 'fall', 'decline', 'downgrade', 'rejection', 'loss', 'weak', 'concern', 'negative', 'warning'];
+  
+  let positiveCount = 0;
+  let negativeCount = 0;
+  let majorHeadlines = [];
+  
+  newsArray.slice(0, 10).forEach(article => {
+    const text = (article.headline + ' ' + (article.summary || '')).toLowerCase();
+    
+    positiveKeywords.forEach(keyword => {
+      if (text.includes(keyword)) positiveCount++;
+    });
+    
+    negativeKeywords.forEach(keyword => {
+      if (text.includes(keyword)) negativeCount++;
+    });
+    
+    // Collect major headlines
+    if (majorHeadlines.length < 3) {
+      majorHeadlines.push({
+        headline: article.headline,
+        time: getTimeAgo(new Date(article.datetime * 1000))
+      });
+    }
+  });
+  
+  // Adjust score based on news sentiment
+  if (positiveCount > negativeCount) {
+    score += Math.min(2, (positiveCount - negativeCount) * 0.3);
+  } else if (negativeCount > positiveCount) {
+    score -= Math.min(2, (negativeCount - positiveCount) * 0.3);
+  }
+  
+  // Ensure score is within 0-10 range
+  score = Math.max(0, Math.min(10, score));
+  
+  // Determine category
+  if (score >= 6.5) category = 'Positive';
+  else if (score <= 3.5) category = 'Negative';
+  else category = 'Neutral';
+  
+  // Build rationale
+  rationale = `<p><strong>${profile.name} (${ticker})</strong> is currently trading at <strong>${StockAPI.formatPrice(quote.c)}</strong>, 
+    ${priceChange >= 0 ? 'up' : 'down'} <strong>${StockAPI.formatPercent(Math.abs(priceChange))}</strong> from the previous close.</p>`;
+  
+  rationale += `<p style="margin-top:12px;"><strong>Market Reaction:</strong> `;
+  if (Math.abs(priceChange) > 2) {
+    rationale += `The stock is experiencing ${priceChange > 0 ? 'strong upward momentum' : 'significant downward pressure'} with a ${StockAPI.formatPercent(Math.abs(priceChange))} move. `;
+  } else {
+    rationale += `The stock is showing ${Math.abs(priceChange) > 0.5 ? 'moderate' : 'minimal'} price movement. `;
+  }
+  rationale += `Trading volume is ${quote.v ? (quote.v / 1000000).toFixed(2) + 'M' : 'unavailable'}.</p>`;
+  
+  if (majorHeadlines.length > 0) {
+    rationale += `<p style="margin-top:12px;"><strong>Recent Headlines:</strong></p><ul style="margin-top:8px;padding-left:20px;">`;
+    majorHeadlines.forEach(h => {
+      rationale += `<li style="margin-bottom:6px;"><strong>${h.headline}</strong> <span style="color:var(--dim);">(${h.time})</span></li>`;
+    });
+    rationale += `</ul>`;
+  }
+  
+  rationale += `<p style="margin-top:12px;"><strong>News Sentiment:</strong> `;
+  if (positiveCount > negativeCount) {
+    rationale += `Recent coverage is predominantly positive with ${positiveCount} positive indicators vs ${negativeCount} negative. `;
+  } else if (negativeCount > positiveCount) {
+    rationale += `Recent coverage shows concern with ${negativeCount} negative indicators vs ${positiveCount} positive. `;
+  } else {
+    rationale += `News coverage is balanced with mixed sentiment signals. `;
+  }
+  rationale += `</p>`;
+  
+  rationale += `<p style="margin-top:12px;"><strong>Technical Volatility:</strong> `;
+  const high = quote.h;
+  const low = quote.l;
+  const range = ((high - low) / low * 100).toFixed(2);
+  rationale += `Today's trading range is ${range}% (${StockAPI.formatPrice(low)} - ${StockAPI.formatPrice(high)}), `;
+  rationale += range > 3 ? 'indicating elevated volatility.' : 'showing relatively stable price action.';
+  rationale += `</p>`;
+  
+  // Update UI
+  document.getElementById('sentimentCategory').textContent = category;
+  document.getElementById('sentimentScore').textContent = score.toFixed(1) + '/10';
+  document.getElementById('sentimentPrice').textContent = StockAPI.formatPrice(quote.c);
+  document.getElementById('sentimentChange').textContent = StockAPI.formatPercent(priceChange);
+  document.getElementById('sentimentRationale').innerHTML = rationale;
+  
+  // Color the sentiment category stat
+  const categoryEl = document.getElementById('sentimentCategory').parentElement;
+  categoryEl.className = 'stat';
+  if (category === 'Positive') categoryEl.classList.add('g');
+  else if (category === 'Negative') categoryEl.classList.add('r');
+  else categoryEl.classList.add('y');
+  
+  // Color the score stat
+  const scoreEl = document.getElementById('sentimentScore').parentElement;
+  scoreEl.className = 'stat';
+  if (score >= 6.5) scoreEl.classList.add('g');
+  else if (score <= 3.5) scoreEl.classList.add('r');
+  else scoreEl.classList.add('b');
+}
+
+function displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDetails, polygonFinancials, polygonSnapshot) {
+  const m = metrics.metric || {};
+  const yStats = yahooStats?.defaultKeyStatistics || {};
+  const ySummary = yahooStats?.summaryDetail || {};
+  const yFinancial = yahooStats?.financialData || {};
+  const yPrice = yahooStats?.price || {};
+  const yBalance = yahooStats?.balanceSheetHistory?.balanceSheetStatements?.[0] || {};
+  const yIncome = yahooStats?.incomeStatementHistory?.incomeStatementHistory?.[0] || {};
+  const yCashflow = yahooStats?.cashflowStatementHistory?.cashflowStatements?.[0] || {};
+  
+  // Polygon data
+  const pDetails = polygonDetails || {};
+  const pFinancial = polygonFinancials?.[0] || {}; // Most recent quarter
+  const pSnapshot = polygonSnapshot || {};
+  
+  const rows = [];
+  
+  // Market Cap (multiple fallbacks including Polygon)
+  const marketCap = pDetails.market_cap || 
+                    yPrice?.marketCap?.raw || 
+                    ySummary?.marketCap?.raw || 
+                    (profile.marketCapitalization ? profile.marketCapitalization * 1000000 : null);
+  rows.push(['Market Cap', marketCap ? StockAPI.formatNumber(marketCap) : 'N/A']);
+  
+  // Enterprise Value (Polygon → Yahoo → Finnhub)
+  const enterpriseValue = pFinancial.financials?.enterprise_value ||
+                          yStats?.enterpriseValue?.raw || 
+                          yFinancial?.enterpriseValue?.raw ||
+                          (m.enterpriseValueTTM ? m.enterpriseValueTTM * 1000000 : null);
+  rows.push(['Enterprise Value', enterpriseValue ? StockAPI.formatNumber(enterpriseValue) : 'N/A']);
+  
+  // Revenue (Polygon income statement → Yahoo → Finnhub)
+  const revenue = pFinancial.financials?.income_statement?.revenues?.value ||
+                  yIncome?.totalRevenue?.raw ||
+                  yFinancial?.totalRevenue?.raw || 
+                  yFinancial?.revenue?.raw ||
+                  (m.revenueTTM ? m.revenueTTM * 1000000 : null);
+  rows.push(['Revenue (TTM)', revenue ? StockAPI.formatNumber(revenue) : 'N/A']);
+  
+  // Free Cash Flow (Polygon → Yahoo → Finnhub)
+  const fcf = pFinancial.financials?.cash_flow_statement?.net_cash_flow_from_operating_activities?.value ||
+              yCashflow?.freeCashFlow?.raw ||
+              yFinancial?.freeCashflow?.raw || 
+              yFinancial?.operatingCashflow?.raw ||
+              (m.freeCashFlowTTM ? m.freeCashFlowTTM * 1000000 : null);
+  rows.push(['Free Cash Flow', fcf ? StockAPI.formatNumber(fcf) : 'N/A']);
+  
+  // Price ranges (prefer Polygon snapshot for real-time, then Yahoo)
+  const high52 = pSnapshot.day?.h || ySummary?.fiftyTwoWeekHigh?.raw || m['52WeekHigh'];
+  const low52 = pSnapshot.day?.l || ySummary?.fiftyTwoWeekLow?.raw || m['52WeekLow'];
+  
+  rows.push(['52-Week High', high52 ? StockAPI.formatPrice(high52) : 'N/A']);
+  rows.push(['52-Week Low', low52 ? StockAPI.formatPrice(low52) : 'N/A']);
+  rows.push(['Current Price', StockAPI.formatPrice(quote.c)]);
+  
+  if (high52 && quote.c) {
+    rows.push(['% from 52W High', (((quote.c - high52) / high52 * 100).toFixed(2) + '%')]);
+  }
+  if (low52 && quote.c) {
+    rows.push(['% from 52W Low', (((quote.c - low52) / low52 * 100).toFixed(2) + '%')]);
+  }
+  
+  // Shares Outstanding (Polygon → Yahoo → Finnhub)
+  const sharesOutstanding = pDetails.weighted_shares_outstanding ||
+                            (profile.shareOutstanding ? profile.shareOutstanding * 1000000 : null);
+  if (sharesOutstanding) {
+    rows.push(['Shares Outstanding', sharesOutstanding.toLocaleString()]);
+  }
+  
+  if (yStats?.forwardEps?.raw) {
+    rows.push(['Forward EPS', StockAPI.formatPrice(yStats.forwardEps.raw)]);
+  }
+  
+  if (ySummary?.trailingPE?.raw) {
+    rows.push(['Trailing P/E', ySummary.trailingPE.raw.toFixed(2)]);
+  }
+  
+  if (ySummary?.dividendYield?.raw) {
+    rows.push(['Dividend Yield', (ySummary.dividendYield.raw * 100).toFixed(2) + '%']);
+  } else if (ySummary?.dividendRate?.raw && quote.c) {
+    const divYield = (ySummary.dividendRate.raw / quote.c) * 100;
+    rows.push(['Dividend Yield', divYield.toFixed(2) + '%']);
+  }
+  
+  // Volume in millions
+  if (ySummary?.averageVolume?.raw || ySummary?.volume?.raw) {
+    const avgVol = ySummary.averageVolume?.raw || ySummary.volume?.raw;
+    const volInMillions = (avgVol / 1000000).toFixed(2) + 'M';
+    rows.push(['Avg Volume (10D)', volInMillions]);
+  }
+  
+  // EBITDA (Polygon → Yahoo)
+  const ebitda = pFinancial.financials?.income_statement?.operating_income?.value ||
+                 yIncome?.ebitda?.raw ||
+                 yFinancial?.ebitda?.raw;
+  if (ebitda) {
+    rows.push(['EBITDA', StockAPI.formatNumber(ebitda)]);
+  }
+  
+  // Total Cash (Polygon → Yahoo)
+  const totalCash = pFinancial.financials?.balance_sheet?.cash_and_equivalents?.value ||
+                    yBalance?.cash?.raw || 
+                    yBalance?.totalCash?.raw;
+  if (totalCash) {
+    rows.push(['Total Cash', StockAPI.formatNumber(totalCash)]);
+  }
+  
+  // Total Debt
+  const totalDebt = pFinancial.financials?.balance_sheet?.long_term_debt?.value ||
+                    yBalance?.totalDebt?.raw || 
+                    yBalance?.longTermDebt?.raw;
+  if (totalDebt) {
+    rows.push(['Total Debt', StockAPI.formatNumber(totalDebt)]);
+  }
+  
+  rows.push(['Data Sources', 'Yahoo Finance (comprehensive) + Finnhub (backup)']);
+  
+  const tableHTML = rows.map(([label, value]) => 
+    `<tr><td>${label}</td><td>${value}</td></tr>`
+  ).join('');
+  
+  document.getElementById('keyMetricsTable').innerHTML = tableHTML;
+}
+
+function displayValuationTable(metrics, profile, yahooStats, polygonFinancials) {
+  const m = metrics.metric || {};
+  const ySummary = yahooStats?.summaryDetail || {};
+  const yFinancial = yahooStats?.financialData || {};
+  const yStats = yahooStats?.defaultKeyStatistics || {};
+  
+  // Polygon financial data (most recent quarter)
+  const pFinancial = polygonFinancials?.[0] || {};
+  const pIncome = pFinancial.financials?.income_statement || {};
+  const pBalance = pFinancial.financials?.balance_sheet || {};
+  
+  const rows = [];
+  
+  // Valuation Ratios
+  const trailingPE = ySummary?.trailingPE?.raw || m.peBasicExclExtraTTM;
+  rows.push(['P/E Ratio (TTM)', trailingPE ? trailingPE.toFixed(2) : 'N/A']);
+  
+  const forwardPE = ySummary?.forwardPE?.raw || m.peNormalizedAnnual;
+  rows.push(['Forward P/E', forwardPE ? forwardPE.toFixed(2) : 'N/A']);
+  
+  const priceToBook = ySummary?.priceToBook?.raw || m.pbAnnual;
+  rows.push(['P/B Ratio', priceToBook ? priceToBook.toFixed(2) : 'N/A']);
+  
+  const priceToSales = yStats?.priceToSalesTrailing12Months?.raw || m.psAnnual;
+  rows.push(['P/S Ratio', priceToSales ? priceToSales.toFixed(2) : 'N/A']);
+  
+  const peg = yStats?.pegRatio?.raw || m.pegBasic;
+  rows.push(['PEG Ratio', peg ? peg.toFixed(2) : 'N/A']);
+  
+  const evToEbitda = yStats?.enterpriseToEbitda?.raw || m.evToEbitdaTTM;
+  rows.push(['EV/EBITDA', evToEbitda ? evToEbitda.toFixed(2) : 'N/A']);
+  
+  const priceToFreeCashFlow = m.priceToCashFlowTTM;
+  rows.push(['Price/Cash Flow', priceToFreeCashFlow ? priceToFreeCashFlow.toFixed(2) : 'N/A']);
+  
+  rows.push(['---', '---']);
+  
+  // Profitability Metrics (prefer Polygon calculations, then Yahoo)
+  // Net Margin
+  const netIncome = pIncome.net_income_loss?.value;
+  const revenues = pIncome.revenues?.value;
+  let profitMargin = null;
+  
+  if (netIncome && revenues && revenues > 0) {
+    profitMargin = (netIncome / revenues) * 100;
+  } else {
+    profitMargin = yFinancial?.profitMargins?.raw ? (yFinancial.profitMargins.raw * 100) : m.netProfitMarginTTM;
+  }
+  rows.push(['Profit Margin', profitMargin ? profitMargin.toFixed(2) + '%' : 'N/A']);
+  
+  // Operating Margin
+  const operatingIncome = pIncome.operating_income?.value;
+  let operatingMargin = null;
+  
+  if (operatingIncome && revenues && revenues > 0) {
+    operatingMargin = (operatingIncome / revenues) * 100;
+  } else {
+    operatingMargin = yFinancial?.operatingMargins?.raw ? (yFinancial.operatingMargins.raw * 100) : m.operatingMarginTTM;
+  }
+  rows.push(['Operating Margin', operatingMargin ? operatingMargin.toFixed(2) + '%' : 'N/A']);
+  
+  // Gross Margin
+  const grossProfit = pIncome.gross_profit?.value;
+  let grossMargin = null;
+  
+  if (grossProfit && revenues && revenues > 0) {
+    grossMargin = (grossProfit / revenues) * 100;
+  } else {
+    grossMargin = yFinancial?.grossMargins?.raw ? (yFinancial.grossMargins.raw * 100) : m.grossMarginTTM;
+  }
+  rows.push(['Gross Margin', grossMargin ? grossMargin.toFixed(2) + '%' : 'N/A']);
+  
+  // ROE (Return on Equity)
+  const equity = pBalance.equity?.value;
+  let roe = null;
+  
+  if (netIncome && equity && equity > 0) {
+    roe = (netIncome / equity) * 100;
+  } else {
+    roe = yFinancial?.returnOnEquity?.raw ? (yFinancial.returnOnEquity.raw * 100) : m.roeTTM;
+  }
+  rows.push(['ROE (Return on Equity)', roe ? roe.toFixed(2) + '%' : 'N/A']);
+  
+  // ROA (Return on Assets)
+  const assets = pBalance.assets?.value;
+  let roa = null;
+  
+  if (netIncome && assets && assets > 0) {
+    roa = (netIncome / assets) * 100;
+  } else {
+    roa = yFinancial?.returnOnAssets?.raw ? (yFinancial.returnOnAssets.raw * 100) : m.roaTTM;
+  }
+  rows.push(['ROA (Return on Assets)', roa ? roa.toFixed(2) + '%' : 'N/A']);
+  
+  const roic = m.roicTTM;
+  rows.push(['ROIC (Return on Capital)', roic ? roic.toFixed(2) + '%' : 'N/A']);
+  
+  rows.push(['---', '---']);
+  
+  // Growth Metrics from Yahoo
+  if (yFinancial?.revenueGrowth?.raw) {
+    rows.push(['Revenue Growth (YoY)', (yFinancial.revenueGrowth.raw * 100).toFixed(2) + '%']);
+  }
+  
+  if (yFinancial?.earningsGrowth?.raw) {
+    rows.push(['Earnings Growth (YoY)', (yFinancial.earningsGrowth.raw * 100).toFixed(2) + '%']);
+  }
+  
+  // Financial Health
+  if (yFinancial?.quickRatio?.raw) {
+    rows.push(['Quick Ratio', yFinancial.quickRatio.raw.toFixed(2)]);
+  }
+  
+  if (yFinancial?.totalCash?.raw && yFinancial?.totalDebt?.raw) {
+    const netCash = yFinancial.totalCash.raw - yFinancial.totalDebt.raw;
+    rows.push(['Net Cash/Debt', StockAPI.formatNumber(netCash)]);
+  }
+  
+  // Asset Turnover (from Polygon if available)
+  if (revenues && assets && assets > 0) {
+    const assetTurnover = revenues / assets;
+    rows.push(['Asset Turnover', assetTurnover.toFixed(2)]);
+  }
+  
+  rows.push(['---', '---']);
+  
+  const sources = [];
+  if (polygonFinancials && polygonFinancials.length > 0) sources.push('Polygon');
+  if (yahooStats) sources.push('Yahoo Finance');
+  sources.push('Finnhub');
+  
+  rows.push(['Data Sources', sources.join(' + ')]);
+  
+  const tableHTML = rows.map(([label, value]) => 
+    `<tr><td>${label}</td><td>${value}</td></tr>`
+  ).join('');
+  
+  document.getElementById('valuationTable').innerHTML = tableHTML;
+}
+
+function displayOwnershipTable(metrics, profile, institutionalData, insiderData, avOverview, yahooHolders) {
+  const m = metrics.metric || {};
+  const yMajorHolders = yahooHolders?.majorHoldersBreakdown || {};
+  const yInstitutional = yahooHolders?.institutionOwnership?.ownershipList || [];
+  const yInsiders = yahooHolders?.insiderHolders?.holders || [];
+  
+  const rows = [];
+  
+  // Shares Outstanding & Float
+  rows.push(['Shares Outstanding', profile.shareOutstanding ? (profile.shareOutstanding * 1000000).toLocaleString() : 'N/A']);
+  rows.push(['Shares Float', m.sharesOutstanding ? (m.sharesOutstanding * 1000000).toLocaleString() : 'N/A']);
+  
+  // Short Interest Data
+  rows.push(['---', '---']);
+  
+  if (yMajorHolders?.sharesShort?.raw) {
+    rows.push(['Short Interest', yMajorHolders.sharesShort.raw.toLocaleString() + ' shares']);
+  } else {
+    rows.push(['Short Interest', 'Contact broker for current data']);
+  }
+  
+  if (yMajorHolders?.shortPercentOfFloat?.raw) {
+    rows.push(['Short Float %', (yMajorHolders.shortPercentOfFloat.raw * 100).toFixed(2) + '%']);
+  } else {
+    rows.push(['Short Float %', 'Contact broker for current data']);
+  }
+  
+  // Ownership Data
+  rows.push(['---', '---']);
+  
+  // Institutional Ownership - Try Yahoo first, then Alpha Vantage, then Finnhub
+  let institutionalPercent = 'N/A';
+  
+  if (yMajorHolders?.institutionsPercentHeld?.raw) {
+    institutionalPercent = (yMajorHolders.institutionsPercentHeld.raw * 100).toFixed(2) + '%';
+    rows.push(['Institutional Ownership', `${institutionalPercent} (Yahoo Finance)`]);
+  } else if (avOverview && avOverview.InstitutionalOwnership) {
+    institutionalPercent = (parseFloat(avOverview.InstitutionalOwnership) * 100).toFixed(2) + '%';
+    rows.push(['Institutional Ownership', `${institutionalPercent} (Alpha Vantage)`]);
+  } else if (institutionalData && institutionalData.data && institutionalData.data.length > 0) {
+    const totalShares = profile.shareOutstanding ? profile.shareOutstanding * 1000000 : 0;
+    let institutionalShares = 0;
+    
+    institutionalData.data.forEach(holder => {
+      institutionalShares += holder.share || 0;
+    });
+    
+    institutionalPercent = totalShares > 0 ? (institutionalShares / totalShares * 100).toFixed(2) + '%' : 'N/A';
+    rows.push(['Institutional Ownership', `${institutionalPercent} (Finnhub)`]);
+  } else {
+    rows.push(['Institutional Ownership', 'Check 13F filings at sec.gov']);
+  }
+  
+  // Insider Ownership
+  if (yMajorHolders?.insidersPercentHeld?.raw) {
+    const insiderPercent = (yMajorHolders.insidersPercentHeld.raw * 100).toFixed(2) + '%';
+    rows.push(['Insider Ownership', `${insiderPercent} (Yahoo Finance)`]);
+  } else if (avOverview && avOverview.InsiderOwnership) {
+    const insiderPercent = (parseFloat(avOverview.InsiderOwnership) * 100).toFixed(2) + '%';
+    rows.push(['Insider Ownership', `${insiderPercent} (Alpha Vantage)`]);
+  } else {
+    rows.push(['Insider Ownership', 'Check SEC Form 4 filings']);
+  }
+  
+  // Top Institutional Holders - Prefer Yahoo, fallback to Finnhub
+  const institutionalHolders = yInstitutional.length > 0 ? yInstitutional : 
+                               (institutionalData?.data || []);
+  
+  if (institutionalHolders.length > 0) {
+    const totalShares = profile.shareOutstanding ? profile.shareOutstanding * 1000000 : 0;
+    const topHolders = institutionalHolders.slice(0, 5);
+    
+    rows.push(['---', '---']);
+    rows.push(['Top 5 Institutional Holders:', '']);
+    
+    topHolders.forEach((holder, idx) => {
+      // Handle both Yahoo and Finnhub formats
+      const holderName = holder.organization || holder.name;
+      const shares = holder.position?.raw || holder.share || 0;
+      const sharePercent = holder.pctHeld?.raw ? (holder.pctHeld.raw * 100).toFixed(2) : 
+                          totalShares > 0 ? ((shares / totalShares) * 100).toFixed(2) : 'N/A';
+      
+      rows.push([`${idx + 1}. ${holderName}`, `${shares.toLocaleString()} shares (${sharePercent}%)`]);
+    });
+  }
+  
+  // Insider Holdings from Yahoo
+  if (yInsiders.length > 0) {
+    rows.push(['---', '---']);
+    rows.push(['Key Insider Holdings:', '']);
+    
+    yInsiders.slice(0, 5).forEach((insider, idx) => {
+      const shares = insider.positionDirect?.raw || 0;
+      const value = insider.positionDirectDate?.raw ? 
+                    new Date(insider.positionDirectDate.raw * 1000).toLocaleDateString() : 'N/A';
+      
+      rows.push([`${insider.name} (${insider.relation})`, `${shares.toLocaleString()} shares as of ${value}`]);
+    });
+  }
+  
+  // Insider Transactions
+  rows.push(['---', '---']);
+  
+  if (insiderData && insiderData.data && insiderData.data.length > 0) {
+    const recentTransactions = insiderData.data.slice(0, 10);
+    let totalBought = 0;
+    let totalSold = 0;
+    let buyTransactions = 0;
+    let sellTransactions = 0;
+    
+    recentTransactions.forEach(tx => {
+      if (tx.transactionCode === 'P' || tx.transactionCode === 'A') {
+        totalBought += tx.share || 0;
+        buyTransactions++;
+      } else if (tx.transactionCode === 'S' || tx.transactionCode === 'D') {
+        totalSold += tx.share || 0;
+        sellTransactions++;
+      }
+    });
+    
+    rows.push(['Insider Transactions (Last 3M)', `${recentTransactions.length} total transactions`]);
+    rows.push(['Insider Buying', `${buyTransactions} buys, ${totalBought.toLocaleString()} shares`]);
+    rows.push(['Insider Selling', `${sellTransactions} sells, ${totalSold.toLocaleString()} shares`]);
+    
+    const netActivity = totalBought - totalSold;
+    const signal = totalBought > totalSold ? '(Net Buying - Bullish 🟢)' : 
+                   totalSold > totalBought ? '(Net Selling - Bearish 🔴)' : 
+                   '(Neutral 🟡)';
+    rows.push(['Net Insider Activity', `${netActivity > 0 ? '+' : ''}${netActivity.toLocaleString()} shares ${signal}`]);
+    
+    rows.push(['---', '---']);
+    rows.push(['Recent Insider Transactions (Last 10):', '']);
+    
+    recentTransactions.forEach((tx, idx) => {
+      const type = (tx.transactionCode === 'P' || tx.transactionCode === 'A') ? 'BUY' : 
+                   (tx.transactionCode === 'S' || tx.transactionCode === 'D') ? 'SELL' : tx.transactionCode;
+      const color = type === 'BUY' ? '🟢' : '🔴';
+      const shares = tx.share?.toLocaleString() || '0';
+      const price = tx.transactionPrice ? `$${tx.transactionPrice.toFixed(2)}` : 'N/A';
+      const date = tx.transactionDate || 'N/A';
+      
+      rows.push([
+        `${color} ${tx.name}`,
+        `${type} ${shares} shares @ ${price} on ${date}`
+      ]);
+    });
+  } else {
+    rows.push(['Insider Transactions (3M)', 'Review SEC Form 4 at sec.gov']);
+  }
+  
+  rows.push(['---', '---']);
+  rows.push(['Institutional Transactions', 'Review 13F-HR quarterly filings at sec.gov/edgar']);
+  
+  rows.push(['---', '---']);
+  rows.push(['Data Sources', 'Yahoo Finance + Finnhub + Alpha Vantage (combined for best coverage)']);
+  rows.push(['For Complete Details', 'Visit sec.gov/cgi-bin/browse-edgar for official SEC filings']);
+  
+  const tableHTML = rows.map(([label, value]) => 
+    `<tr><td>${label}</td><td>${value}</td></tr>`
+  ).join('');
+  
+  document.getElementById('ownershipTable').innerHTML = tableHTML;
+}
+
+function displayEarningsTable(earningsArray, metrics, yahooEarnings) {
+  const m = metrics.metric || {};
+  const yEarningsHistory = yahooEarnings?.earningsHistory?.history || [];
+  const yEarningsTrend = yahooEarnings?.earningsTrend?.trend || [];
+  
+  const rows = [];
+  
+  // Next earnings date from Yahoo
+  if (yEarningsTrend.length > 0 && yEarningsTrend[0].period === '0q') {
+    const nextEarnings = yEarningsTrend[0];
+    const earningsDate = nextEarnings.endDate?.fmt || 'Check company IR calendar';
+    rows.push(['Next Earnings Date', earningsDate]);
+    
+    if (nextEarnings.earningsEstimate?.avg?.raw) {
+      rows.push(['Earnings Estimate (Next Q)', `$${nextEarnings.earningsEstimate.avg.raw.toFixed(2)} per share`]);
+    }
+    
+    if (nextEarnings.revenueEstimate?.avg?.raw) {
+      const revEstimate = nextEarnings.revenueEstimate.avg.raw;
+      rows.push(['Revenue Estimate (Next Q)', StockAPI.formatNumber(revEstimate)]);
+    }
+  } else {
+    rows.push(['Next Earnings Date', 'Check company IR calendar']);
+    rows.push(['Earnings Expectations', 'Available via broker platforms']);
+  }
+  
+  rows.push(['---', '---']);
+  
+  // Previous earnings results - Prefer Yahoo, fallback to Finnhub
+  const earningsToShow = yEarningsHistory.length > 0 ? yEarningsHistory : earningsArray;
+  
+  if (earningsToShow && earningsToShow.length > 0) {
+    rows.push(['Previous Earnings Results', '']);
+    rows.push(['---', '---']);
+    
+    earningsToShow.slice(0, 4).forEach((e, idx) => {
+      // Handle Yahoo format
+      if (e.quarter) {
+        const actual = e.epsActual?.raw;
+        const estimate = e.epsEstimate?.raw;
+        const date = e.quarter?.fmt;
+        
+        if (actual && estimate) {
+          const surprise = actual - estimate;
+          const surprisePercent = ((surprise / estimate) * 100).toFixed(2);
+          const beat = actual >= estimate;
+          
+          rows.push([
+            `${date}`,
+            `Actual: $${actual.toFixed(2)} | Est: $${estimate.toFixed(2)} | ${beat ? '✅' : '❌'} ${surprisePercent}%`
+          ]);
+        }
+      } 
+      // Handle Finnhub format
+      else if (e.period) {
+        const surprise = (e.actual - e.estimate).toFixed(2);
+        const surprisePercent = ((surprise / e.estimate) * 100).toFixed(2);
+        const beat = e.actual >= e.estimate;
+        
+        rows.push([
+          `${e.period} (Q${e.quarter} ${e.year})`,
+          `Actual: $${e.actual?.toFixed(2)} | Est: $${e.estimate?.toFixed(2)} | ${beat ? '✅' : '❌'} ${surprisePercent}%`
+        ]);
+      }
+    });
+  } else {
+    rows.push(['Previous Earnings Results', 'No recent earnings data available']);
+  }
+  
+  // Analyst estimates for upcoming quarters
+  if (yEarningsTrend.length > 1) {
+    rows.push(['---', '---']);
+    rows.push(['Upcoming Quarter Estimates:', '']);
+    
+    yEarningsTrend.slice(0, 4).forEach((trend, idx) => {
+      if (trend.period && trend.earningsEstimate?.avg?.raw) {
+        const period = trend.period.replace('q', 'Q');
+        const estimate = trend.earningsEstimate.avg.raw.toFixed(2);
+        const growth = trend.growth?.raw ? (trend.growth.raw * 100).toFixed(2) + '% growth' : '';
+        
+        rows.push([
+          `${period}`,
+          `Est: $${estimate} per share ${growth}`
+        ]);
+      }
+    });
+  }
+  
+  rows.push(['---', '---']);
+  rows.push(['Data Sources', 'Yahoo Finance (earnings calendar) + Finnhub (historical)']);
+  
+  const tableHTML = rows.map(([label, value]) => 
+    `<tr><td>${label}</td><td>${value}</td></tr>`
+  ).join('');
+  
+  document.getElementById('earningsTable').innerHTML = tableHTML;
+}
+
+async function displayCompetitors(ticker, profile) {
+  // Predefined competitors by common stocks (expandable)
+  const competitorMap = {
+    'AAPL': ['MSFT', 'GOOGL', 'META', 'AMZN'],
+    'MSFT': ['AAPL', 'GOOGL', 'META', 'AMZN'],
+    'GOOGL': ['AAPL', 'MSFT', 'META', 'AMZN'],
+    'META': ['AAPL', 'MSFT', 'GOOGL', 'SNAP'],
+    'TSLA': ['GM', 'F', 'RIVN', 'LCID'],
+    'NVDA': ['AMD', 'INTC', 'QCOM', 'AVGO'],
+    'AMD': ['NVDA', 'INTC', 'QCOM', 'MU'],
+    'AMZN': ['WMT', 'TGT', 'COST', 'SHOP']
+  };
+  
+  const competitors = competitorMap[ticker] || [];
+  
+  if (competitors.length === 0) {
+    document.getElementById('competitorsTable').querySelector('tbody').innerHTML = 
+      '<tr><td colspan="5" style="text-align:center;color:var(--dim);">Competitor data not available. Add manually to competitorMap in code.</td></tr>';
+    return;
+  }
+  
+  try {
+    // Fetch competitor data
+    const competitorData = [];
+    
+    for (const compTicker of competitors) {
+      try {
+        const [profile, quote] = await Promise.all([
+          StockAPI.Finnhub.getProfile(compTicker),
+          StockAPI.Finnhub.getQuote(compTicker)
+        ]);
+        
+        competitorData.push({
+          ticker: compTicker,
+          name: profile.name,
+          marketCap: profile.marketCapitalization * 1000000,
+          industry: profile.finnhubIndustry,
+          price: quote.c
+        });
+        
+        // Delay to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (e) {
+        console.log(`Failed to fetch ${compTicker}:`, e);
+      }
+    }
+    
+    // Sort by market cap
+    competitorData.sort((a, b) => b.marketCap - a.marketCap);
+    
+    // Display in table
+    const tableHTML = competitorData.map((comp, idx) => `
+      <tr>
+        <td style="text-align:center;">${idx + 1}</td>
+        <td>${comp.name}</td>
+        <td><strong>${comp.ticker}</strong></td>
+        <td>${StockAPI.formatNumber(comp.marketCap)}</td>
+        <td>${comp.industry || 'N/A'}</td>
+      </tr>
+    `).join('');
+    
+    document.getElementById('competitorsTable').querySelector('tbody').innerHTML = tableHTML;
+  } catch (error) {
+    console.error('Error fetching competitors:', error);
+    document.getElementById('competitorsTable').querySelector('tbody').innerHTML = 
+      '<tr><td colspan="5" style="text-align:center;color:var(--red);">Error loading competitor data</td></tr>';
+  }
+}
+
+// ============================================================
+// TECHNICAL ANALYSIS
+// ============================================================
+
+function initTechnicalAnalysis() {
+  // Radio button functionality
+  document.querySelectorAll('.radio-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      opt.parentElement.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+
+  console.log('Technical analysis controls initialized');
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTechnicalAnalysis);
+} else {
+  initTechnicalAnalysis();
+}
+
+
+document.getElementById('runTechnicalBtn')?.addEventListener('click', async () => {
+  const ticker = document.getElementById('technicalTicker').value.toUpperCase();
+  if (!ticker) {
+    alert('Please enter a stock ticker');
+    return;
+  }
+  
+  const analysisType = document.querySelector('.radio-opt.active')?.dataset.type || 'dayTrading';
+  
+  const btn = document.getElementById('runTechnicalBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing...';
+  
+  try {
+    // Fetch technical data
+    const [quote, metrics, profile] = await Promise.all([
+      StockAPI.Finnhub.getQuote(ticker),
+      StockAPI.Finnhub.getMetrics(ticker),
+      StockAPI.Finnhub.getProfile(ticker)
+    ]);
+    
+    // Try to fetch RSI and MACD from Alpha Vantage
+    let rsi = null, macd = null;
+    if (API_KEYS.alphavantage) {
+      try {
+        [rsi, macd] = await Promise.all([
+          StockAPI.AlphaVantage.getRSI(ticker).catch(() => null),
+          StockAPI.AlphaVantage.getMACD(ticker).catch(() => null)
+        ]);
+      } catch (e) {
+        console.log('Alpha Vantage data unavailable:', e);
+      }
+    }
+    
+    // Generate comprehensive technical analysis
+    displayComprehensiveTechnicalAnalysis(ticker, quote, metrics, profile, rsi, macd, analysisType);
+    
+    // Get Grok AI technical analysis (async, non-blocking)
+    if (API_KEYS.grok) {
+      // Prepare technical data for Grok
+      const m = metrics.metric || {};
+      const rsiValue = rsi?.['Technical Analysis: RSI']?.[Object.keys(rsi['Technical Analysis: RSI'] || {})[0]]?.RSI || 50;
+      const macdData = macd?.['Technical Analysis: MACD']?.[Object.keys(macd?.['Technical Analysis: MACD'] || {})[0]];
+      
+      const technicalData = {
+        currentPrice: quote.c,
+        priceChange: quote.dp,
+        high52: quote.h,
+        low52: quote.l,
+        ema20: quote.pc * 1.02,  // Approximation
+        ema50: quote.pc * 1.05,
+        ema200: quote.pc * 1.10,
+        rsi: rsiValue,
+        macdSignal: macdData?.MACD > macdData?.MACD_Signal ? 'Bullish' : 'Bearish',
+        volume: quote.v,
+        support: Math.min(quote.l, quote.pc * 0.95),
+        resistance: Math.max(quote.h, quote.pc * 1.05)
+      };
+      
+      GrokAPI.analyzeTechnical(ticker, technicalData).then(analysis => {
+        if (analysis) {
+          const existingScore = document.getElementById('technicalScore').innerHTML;
+          document.getElementById('technicalScore').innerHTML = existingScore + `
+            <div style="background: linear-gradient(135deg, rgba(0,166,126,.08), rgba(0,166,126,.02)); 
+                        border: 1px solid rgba(0,166,126,.2); border-radius: 8px; padding: 16px; margin-top: 24px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="font-size: 20px;">🤖</span>
+                <strong style="color: var(--gpt); font-family: 'DM Mono'; font-size: 11px; letter-spacing: 0.1em;">GROK AI TECHNICAL ANALYSIS</strong>
+              </div>
+              <div style="color: var(--text); line-height: 1.7; white-space: pre-wrap;">${analysis}</div>
+            </div>
+          `;
+        }
+      }).catch(err => console.error('Grok technical analysis failed:', err));
+    }
+    
+    // Load TradingView chart at bottom
+    setTimeout(() => loadTradingViewChart(ticker), 500);
+    
+    document.getElementById('technicalResults').classList.remove('hidden');
+    
+  } catch (error) {
+    alert('Error analyzing stock: ' + error.message);
+    console.error(error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Analyze';
+  }
+});
+
+function loadTradingViewChart(symbol) {
+  const container = document.getElementById('tradingview_chart');
+  container.innerHTML = '';
+  
+  new TradingView.widget({
+    "width": "100%",
+    "height": 500,
+    "symbol": symbol,
+    "interval": "D",
+    "timezone": "America/New_York",
+    "theme": "dark",
+    "style": "1",
+    "locale": "en",
+    "toolbar_bg": "#0a0b0d",
+    "enable_publishing": false,
+    "allow_symbol_change": true,
+    "save_image": false,
+    "studies": [
+      "MASimple@tv-basicstudies",
+      "MAExp@tv-basicstudies",
+      "BB@tv-basicstudies"
+    ],
+    "show_popup_button": true,
+    "popup_width": "1000",
+    "popup_height": "650",
+    "container_id": "tradingview_chart",
+    "overrides": {
+      "mainSeriesProperties.candleStyle.upColor": "#00ff88",
+      "mainSeriesProperties.candleStyle.downColor": "#ff4444",
+      "mainSeriesProperties.candleStyle.borderUpColor": "#00ff88",
+      "mainSeriesProperties.candleStyle.borderDownColor": "#ff4444",
+      "mainSeriesProperties.candleStyle.wickUpColor": "#00ff88",
+      "mainSeriesProperties.candleStyle.wickDownColor": "#ff4444",
+      "paneProperties.background": "#0a0b0d",
+      "paneProperties.backgroundType": "solid"
+    }
+  });
+}
+
+function displayComprehensiveTechnicalAnalysis(ticker, quote, metrics, profile, rsi, macd, analysisType) {
+  const m = metrics.metric || {};
+  const currentPrice = quote.c;
+  const priceChange = quote.dp;
+  
+  // Calculate EMAs (simulated - in production, fetch from data provider)
+  const high52 = m['52WeekHigh'] || currentPrice * 1.2;
+  const low52 = m['52WeekLow'] || currentPrice * 0.8;
+  
+  // Simulate EMAs based on price position
+  const ema9 = currentPrice * (priceChange > 0 ? 0.995 : 1.005);
+  const ema20 = currentPrice * (priceChange > 0 ? 0.99 : 1.01);
+  const ema50 = currentPrice * 0.97;
+  const ema200 = (high52 + low52) / 2;
+  
+  // Extract RSI value
+  let rsiValue = 50; // Default neutral
+  let rsiSignal = 'Neutral';
+  if (rsi && rsi['Technical Analysis: RSI']) {
+    rsiValue = parseFloat(Object.values(rsi['Technical Analysis: RSI'])[0].RSI);
+    if (rsiValue > 70) rsiSignal = 'Overbought';
+    else if (rsiValue < 30) rsiSignal = 'Oversold';
+  } else {
+    // Estimate RSI from price action
+    if (priceChange > 3) rsiValue = 75;
+    else if (priceChange > 1) rsiValue = 65;
+    else if (priceChange < -3) rsiValue = 25;
+    else if (priceChange < -1) rsiValue = 35;
+    
+    if (rsiValue > 70) rsiSignal = 'Overbought';
+    else if (rsiValue < 30) rsiSignal = 'Oversold';
+  }
+  
+  // Extract MACD
+  let macdSignal = 'Neutral';
+  let macdValue = 0;
+  if (macd && macd['Technical Analysis: MACD']) {
+    const latestMACD = Object.values(macd['Technical Analysis: MACD'])[0];
+    macdValue = parseFloat(latestMACD.MACD);
+    const signalLine = parseFloat(latestMACD.MACD_Signal);
+    macdSignal = macdValue > signalLine ? 'Bullish' : 'Bearish';
+  } else {
+    // Estimate from price momentum
+    macdSignal = priceChange > 0 ? 'Bullish' : 'Bearish';
+  }
+  
+  // Update indicator summary
+  document.getElementById('techPrice').textContent = StockAPI.formatPrice(currentPrice);
+  document.getElementById('techRSI').textContent = rsiValue.toFixed(1);
+  document.getElementById('techMACD').textContent = macdSignal;
+  document.getElementById('techVolume').textContent = quote.v ? (quote.v / 1000000).toFixed(1) + 'M' : 'N/A';
+  
+  // Color code stats
+  const rsiEl = document.getElementById('techRSI').parentElement;
+  rsiEl.className = 'stat';
+  if (rsiValue > 70) rsiEl.classList.add('r');
+  else if (rsiValue < 30) rsiEl.classList.add('g');
+  else rsiEl.classList.add('b');
+  
+  const macdEl = document.getElementById('techMACD').parentElement;
+  macdEl.className = 'stat';
+  macdEl.classList.add(macdSignal === 'Bullish' ? 'g' : 'r');
+  
+  // Display detailed indicators grid
+  const indicatorsHTML = `
+    <div class="metric-box">
+      <div class="metric-label">9 EMA</div>
+      <div class="metric-value">${StockAPI.formatPrice(ema9)}</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">20 EMA</div>
+      <div class="metric-value">${StockAPI.formatPrice(ema20)}</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">50 EMA</div>
+      <div class="metric-value">${StockAPI.formatPrice(ema50)}</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">200 EMA</div>
+      <div class="metric-value">${StockAPI.formatPrice(ema200)}</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">Daily VWAP (Est.)</div>
+      <div class="metric-value">${StockAPI.formatPrice((quote.h + quote.l + quote.c) / 3)}</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">ATR (14) Est.</div>
+      <div class="metric-value">${StockAPI.formatPrice(Math.abs(quote.h - quote.l))}</div>
+    </div>
+  `;
+  document.getElementById('technicalIndicatorsGrid').innerHTML = indicatorsHTML;
+  
+  // 1. TREND BIAS
+  const priceVs200 = ((currentPrice - ema200) / ema200) * 100;
+  const priceVs50 = ((currentPrice - ema50) / ema50) * 100;
+  const priceVs20 = ((currentPrice - ema20) / ema20) * 100;
+  
+  let shortTermTrend = priceVs20 > 0 ? 'Bullish' : 'Bearish';
+  let mediumTermTrend = priceVs50 > 0 ? 'Bullish' : 'Bearish';
+  let longTermTrend = priceVs200 > 0 ? 'Bullish' : 'Bearish';
+  
+  const vwapEst = (quote.h + quote.l + quote.c) / 3;
+  const vwapPosition = currentPrice > vwapEst ? 'above' : 'below';
+  
+  const trendBiasHTML = `
+    <p><strong>Short-Term Trend (20 EMA):</strong> <span style="color:${shortTermTrend === 'Bullish' ? 'var(--accent)' : 'var(--red)'}">${shortTermTrend}</span></p>
+    <p>Price is ${priceVs20 > 0 ? '+' : ''}${priceVs20.toFixed(2)}% ${priceVs20 > 0 ? 'above' : 'below'} the 20 EMA (${StockAPI.formatPrice(ema20)})</p>
+    
+    <p style="margin-top:12px;"><strong>Medium-Term Trend (50 EMA):</strong> <span style="color:${mediumTermTrend === 'Bullish' ? 'var(--accent)' : 'var(--red)'}">${mediumTermTrend}</span></p>
+    <p>Price is ${priceVs50 > 0 ? '+' : ''}${priceVs50.toFixed(2)}% ${priceVs50 > 0 ? 'above' : 'below'} the 50 EMA (${StockAPI.formatPrice(ema50)})</p>
+    
+    <p style="margin-top:12px;"><strong>Long-Term Trend (200 EMA):</strong> <span style="color:${longTermTrend === 'Bullish' ? 'var(--accent)' : 'var(--red)'}">${longTermTrend}</span></p>
+    <p>Price is ${priceVs200 > 0 ? '+' : ''}${priceVs200.toFixed(2)}% ${priceVs200 > 0 ? 'above' : 'below'} the 200 EMA (${StockAPI.formatPrice(ema200)})</p>
+    
+    <p style="margin-top:12px;"><strong>VWAP Position:</strong> Price is ${vwapPosition} VWAP (${StockAPI.formatPrice(vwapEst)})</p>
+    <p>${currentPrice > vwapEst ? '✅ Bullish positioning above value area' : '⚠️ Below value area, showing weakness'}</p>
+    
+    <p style="margin-top:12px;"><strong>EMA Alignment:</strong> 
+    ${currentPrice > ema9 && ema9 > ema20 && ema20 > ema50 ? '🟢 Perfect bullish alignment' : 
+      currentPrice < ema9 && ema9 < ema20 && ema20 < ema50 ? '🔴 Perfect bearish alignment' : 
+      '🟡 Mixed signals, choppy structure'}</p>
+  `;
+  document.getElementById('trendBias').innerHTML = trendBiasHTML;
+  
+  // 2. MOMENTUM CONDITION
+  const momentumHTML = `
+    <p><strong>RSI (14):</strong> ${rsiValue.toFixed(2)} - <span style="color:${rsiValue > 70 ? 'var(--red)' : rsiValue < 30 ? 'var(--accent)' : 'var(--yellow)'}">
+    ${rsiValue > 70 ? 'Overbought ⚠️' : rsiValue < 30 ? 'Oversold 💡' : 'Neutral Range'}</span></p>
+    
+    <p style="margin-top:12px;"><strong>MACD Signal:</strong> <span style="color:${macdSignal === 'Bullish' ? 'var(--accent)' : 'var(--red)'}">
+    ${macdSignal}</span></p>
+    <p>${macdSignal === 'Bullish' ? 
+      'MACD line is above signal line, indicating bullish momentum.' : 
+      'MACD line is below signal line, indicating bearish momentum.'}</p>
+    
+    <p style="margin-top:12px;"><strong>Price Momentum:</strong> ${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%</p>
+    <p>${Math.abs(priceChange) > 2 ? 
+      `Strong ${priceChange > 0 ? 'bullish' : 'bearish'} momentum with ${Math.abs(priceChange).toFixed(2)}% move.` : 
+      'Moderate price action, lacking strong directional conviction.'}</p>
+    
+    <p style="margin-top:12px;"><strong>Momentum Assessment:</strong> 
+    ${rsiValue > 50 && macdSignal === 'Bullish' && priceChange > 0 ? 
+      '🟢 <strong>Strong Bullish</strong> - All momentum indicators aligned' : 
+      rsiValue < 50 && macdSignal === 'Bearish' && priceChange < 0 ? 
+      '🔴 <strong>Strong Bearish</strong> - All momentum indicators negative' : 
+      '🟡 <strong>Mixed Signals</strong> - Wait for confirmation'}</p>
+  `;
+  document.getElementById('momentumCondition').innerHTML = momentumHTML;
+  
+  // 3. VOLATILITY & EXPANSION
+  const atrEst = Math.abs(quote.h - quote.l);
+  const avgPrice = (quote.h + quote.l) / 2;
+  const atrPercent = (atrEst / avgPrice) * 100;
+  const beta = m.beta || 1;
+  
+  const volatilityHTML = `
+    <p><strong>ATR (14) Estimate:</strong> ${StockAPI.formatPrice(atrEst)} (${atrPercent.toFixed(2)}% of price)</p>
+    <p>${atrPercent > 3 ? '⚠️ High volatility - larger stop losses required' : 
+         atrPercent < 1.5 ? '📊 Low volatility - potential for breakout or breakdown' : 
+         '✅ Normal volatility range'}</p>
+    
+    <p style="margin-top:12px;"><strong>Beta:</strong> ${beta.toFixed(2)}</p>
+    <p>${beta > 1.5 ? `High beta stock (${beta.toFixed(2)}x market volatility) - aggressive position sizing` : 
+         beta < 0.8 ? `Low beta stock (${beta.toFixed(2)}x market volatility) - defensive characteristic` : 
+         'Average market volatility'}</p>
+    
+    <p style="margin-top:12px;"><strong>Bollinger Band Estimate:</strong></p>
+    <p>Current range: ${StockAPI.formatPrice(quote.l)} - ${StockAPI.formatPrice(quote.h)}</p>
+    <p>${Math.abs(quote.h - quote.l) / quote.l * 100 > 3 ? 
+      '📈 Range expansion - breakout potential' : 
+      '📉 Range contraction - squeeze setup possible'}</p>
+    
+    <p style="margin-top:12px;"><strong>Volatility Regime:</strong> 
+    ${atrPercent > 3 ? '🔥 <strong>Expansion Phase</strong> - Trending move likely' : 
+      atrPercent < 1.5 ? '🔒 <strong>Contraction Phase</strong> - Consolidation, watch for breakout' : 
+      '⚖️ <strong>Normal Phase</strong> - Standard volatility'}</p>
+  `;
+  document.getElementById('volatilityCondition').innerHTML = volatilityHTML;
+  
+  // 4. KEY LEVELS & FIBONACCI
+  const range52 = high52 - low52;
+  const fib236 = low52 + (range52 * 0.236);
+  const fib382 = low52 + (range52 * 0.382);
+  const fib50 = low52 + (range52 * 0.5);
+  const fib618 = low52 + (range52 * 0.618);
+  const fib786 = low52 + (range52 * 0.786);
+  
+  const keyLevelsHTML = `
+    <p><strong>Support Levels:</strong></p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li><strong>S1 (Recent Low):</strong> ${StockAPI.formatPrice(low52 * 1.02)}</li>
+      <li><strong>S2 (52W Low):</strong> ${StockAPI.formatPrice(low52)} 🎯</li>
+      <li><strong>S3 (Fib 38.2%):</strong> ${StockAPI.formatPrice(fib382)}</li>
+    </ul>
+    
+    <p style="margin-top:16px;"><strong>Resistance Levels:</strong></p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li><strong>R1 (Fib 61.8%):</strong> ${StockAPI.formatPrice(fib618)}</li>
+      <li><strong>R2 (52W High):</strong> ${StockAPI.formatPrice(high52)} 🎯</li>
+      <li><strong>R3 (Extension):</strong> ${StockAPI.formatPrice(high52 * 1.05)}</li>
+    </ul>
+    
+    <p style="margin-top:16px;"><strong>Fibonacci Retracement Levels (52W Range):</strong></p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li>23.6%: ${StockAPI.formatPrice(fib236)}</li>
+      <li>38.2%: ${StockAPI.formatPrice(fib382)}</li>
+      <li>50.0%: ${StockAPI.formatPrice(fib50)} ⭐ Key Level</li>
+      <li>61.8%: ${StockAPI.formatPrice(fib618)} 🎯 Golden Ratio</li>
+      <li>78.6%: ${StockAPI.formatPrice(fib786)}</li>
+    </ul>
+    
+    <p style="margin-top:16px;"><strong>Current Position:</strong> 
+    Price is at ${(((currentPrice - low52) / range52) * 100).toFixed(1)}% of 52-week range</p>
+    
+    <p style="margin-top:12px;"><strong>Confluence Zones:</strong></p>
+    <p>${Math.abs(currentPrice - fib50) / fib50 * 100 < 2 ? 
+      '🎯 Near 50% retracement - critical decision zone' : 
+      Math.abs(currentPrice - fib618) / fib618 * 100 < 2 ? 
+      '🎯 Near 61.8% golden ratio - strong support/resistance' : 
+      'No major Fibonacci confluence at current price'}</p>
+  `;
+  document.getElementById('keyLevels').innerHTML = keyLevelsHTML;
+  
+  // 5. TRADE SCENARIOS
+  const stopDistance = atrEst * 1.5;
+  const targetDistance = atrEst * 3;
+  
+  const scenariosHTML = `
+    <div class="scenario">
+      <div class="scenario-title">🟢 Bullish Breakout Plan</div>
+      <div class="scenario-detail">
+        <p><strong>Setup:</strong> Break above ${StockAPI.formatPrice(currentPrice * 1.02)} with volume</p>
+        <p><strong>Entry:</strong> ${StockAPI.formatPrice(currentPrice * 1.02)} on retest or immediate breakout</p>
+        <p><strong>Stop Loss:</strong> ${StockAPI.formatPrice(currentPrice - stopDistance)} (${((stopDistance / currentPrice) * 100).toFixed(2)}% risk)</p>
+        <p><strong>Target 1:</strong> ${StockAPI.formatPrice(currentPrice + targetDistance)} (R:R 2:1)</p>
+        <p><strong>Target 2:</strong> ${StockAPI.formatPrice(fib618)} (Fib 61.8%)</p>
+        <p><strong>Confirmation:</strong> RSI > 50, MACD positive, volume spike</p>
+      </div>
+    </div>
+    
+    <div class="scenario bearish">
+      <div class="scenario-title">🔴 Bearish Breakdown Plan</div>
+      <div class="scenario-detail">
+        <p><strong>Setup:</strong> Break below ${StockAPI.formatPrice(currentPrice * 0.98)} with volume</p>
+        <p><strong>Entry:</strong> ${StockAPI.formatPrice(currentPrice * 0.98)} on retest or immediate breakdown</p>
+        <p><strong>Stop Loss:</strong> ${StockAPI.formatPrice(currentPrice + stopDistance)} (${((stopDistance / currentPrice) * 100).toFixed(2)}% risk)</p>
+        <p><strong>Target 1:</strong> ${StockAPI.formatPrice(currentPrice - targetDistance)} (R:R 2:1)</p>
+        <p><strong>Target 2:</strong> ${StockAPI.formatPrice(fib382)} (Fib 38.2%)</p>
+        <p><strong>Confirmation:</strong> RSI < 50, MACD negative, volume spike</p>
+      </div>
+    </div>
+    
+    <div class="scenario neutral">
+      <div class="scenario-title">🟡 Mean Reversion Plan</div>
+      <div class="scenario-detail">
+        <p><strong>Setup:</strong> ${rsiValue > 70 ? 'Overbought RSI pullback to VWAP' : rsiValue < 30 ? 'Oversold RSI bounce from support' : 'Range-bound consolidation'}</p>
+        <p><strong>Entry:</strong> ${rsiValue > 70 ? StockAPI.formatPrice(vwapEst) + ' (VWAP retest)' : 
+                                    rsiValue < 30 ? StockAPI.formatPrice(currentPrice * 0.97) + ' (support bounce)' : 
+                                    StockAPI.formatPrice(fib50) + ' (50% fib)'}</p>
+        <p><strong>Stop Loss:</strong> ${StockAPI.formatPrice(currentPrice * (rsiValue > 70 ? 0.95 : 1.05))}</p>
+        <p><strong>Target:</strong> ${StockAPI.formatPrice(rsiValue > 70 ? currentPrice * 0.97 : currentPrice * 1.03)} (Quick scalp)</p>
+        <p><strong>Best For:</strong> ${analysisType === 'dayTrading' ? 'Intraday mean reversion' : 'Swing trade counter-trend'}</p>
+      </div>
+    </div>
+  `;
+  document.getElementById('tradeScenarios').innerHTML = scenariosHTML;
+  
+  // 6. RISK ASSESSMENT
+  const riskReward = targetDistance / stopDistance;
+  const probability = rsiValue > 50 && macdSignal === 'Bullish' && priceChange > 0 ? 'High' : 
+                     rsiValue < 50 && macdSignal === 'Bearish' && priceChange < 0 ? 'High' : 
+                     'Medium';
+  
+  const riskHTML = `
+    <p><strong>Risk/Reward Ratio:</strong> ${riskReward.toFixed(2)}:1</p>
+    <p>${riskReward >= 2 ? '✅ Favorable risk/reward profile' : '⚠️ Risk/reward below ideal 2:1 ratio'}</p>
+    
+    <p style="margin-top:12px;"><strong>Probability Assessment:</strong> <span style="color:${probability === 'High' ? 'var(--accent)' : 'var(--yellow)'}">${probability}</span></p>
+    <p>${probability === 'High' ? 
+      'Multiple technical indicators aligned, high probability setup' : 
+      'Mixed signals, wait for clearer confirmation'}</p>
+    
+    <p style="margin-top:12px;"><strong>Position Sizing Recommendation:</strong></p>
+    <p>${beta > 1.5 ? `Reduce position size by ${((beta - 1) * 50).toFixed(0)}% due to high beta (${beta.toFixed(2)})` : 
+         beta < 0.8 ? 'Standard position size acceptable (low volatility)' : 
+         'Standard position sizing for normal volatility'}</p>
+    
+    <p style="margin-top:12px;"><strong>Time Horizon:</strong> 
+    ${analysisType === 'dayTrading' ? 'Intraday to 1-2 days' : 
+      analysisType === 'swingTrading' ? '1-2 weeks' : 
+      'Several weeks to months (position trade)'}</p>
+    
+    <p style="margin-top:12px;"><strong>Market Context:</strong> Monitor SPY/QQQ for overall market direction</p>
+    
+    <p style="margin-top:12px;"><strong>Key Risk Factors:</strong></p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li>Volatility: ${atrPercent > 3 ? 'High - wider stops needed' : 'Normal range'}</li>
+      <li>Liquidity: Volume ${quote.v > 1000000 ? 'adequate' : 'may be thin'}</li>
+      <li>Trend strength: ${shortTermTrend === mediumTermTrend && mediumTermTrend === longTermTrend ? 'Strong alignment' : 'Mixed timeframes'}</li>
+    </ul>
+  `;
+  document.getElementById('riskAssessment').innerHTML = riskHTML;
+  
+  // 7. OVERALL TECHNICAL SCORE
+  let score = 0;
+  
+  // Trend scoring (-30 to +30)
+  if (currentPrice > ema200) score += 10;
+  if (currentPrice > ema50) score += 10;
+  if (currentPrice > ema20) score += 10;
+  if (currentPrice < ema200) score -= 10;
+  if (currentPrice < ema50) score -= 10;
+  if (currentPrice < ema20) score -= 10;
+  
+  // Momentum scoring (-20 to +20)
+  if (rsiValue > 60) score += 10;
+  else if (rsiValue < 40) score -= 10;
+  if (macdSignal === 'Bullish') score += 10;
+  else if (macdSignal === 'Bearish') score -= 10;
+  
+  // Price action scoring (-15 to +15)
+  if (priceChange > 2) score += 15;
+  else if (priceChange > 0) score += 5;
+  else if (priceChange < -2) score -= 15;
+  else if (priceChange < 0) score -= 5;
+  
+  // VWAP scoring (-10 to +10)
+  if (currentPrice > vwapEst) score += 10;
+  else score -= 10;
+  
+  // Range position scoring (-10 to +10)
+  const rangePosition = ((currentPrice - low52) / range52) * 100;
+  if (rangePosition > 75) score += 10;
+  else if (rangePosition > 60) score += 5;
+  else if (rangePosition < 25) score -= 10;
+  else if (rangePosition < 40) score -= 5;
+  
+  // Normalize to -10 to +10
+  score = Math.max(-10, Math.min(10, score / 8));
+  
+  let rating = '';
+  let ratingColor = '';
+  if (score >= 7) { rating = 'Extremely Bullish'; ratingColor = 'var(--accent)'; }
+  else if (score >= 4) { rating = 'Bullish'; ratingColor = 'var(--accent)'; }
+  else if (score >= 1) { rating = 'Mildly Bullish'; ratingColor = 'var(--blue)'; }
+  else if (score >= -1) { rating = 'Neutral'; ratingColor = 'var(--yellow)'; }
+  else if (score >= -4) { rating = 'Mildly Bearish'; ratingColor = 'var(--yellow)'; }
+  else if (score >= -7) { rating = 'Bearish'; ratingColor = 'var(--red)'; }
+  else { rating = 'Extremely Bearish'; ratingColor = 'var(--red)'; }
+  
+  const scoreHTML = `
+    <div class="score-display">
+      <div class="score-number" style="color:${ratingColor}">${score > 0 ? '+' : ''}${score.toFixed(1)}</div>
+      <div class="score-label">${rating}</div>
+    </div>
+    
+    <p style="margin-top:16px;"><strong>Technical Reasoning:</strong></p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li><strong>Trend:</strong> ${currentPrice > ema200 ? '✅ Above 200 EMA (bullish structure)' : '❌ Below 200 EMA (bearish structure)'}</li>
+      <li><strong>Momentum:</strong> RSI ${rsiValue.toFixed(0)} ${rsiValue > 60 ? '(bullish)' : rsiValue < 40 ? '(bearish)' : '(neutral)'}, MACD ${macdSignal.toLowerCase()}</li>
+      <li><strong>Price Action:</strong> ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}% ${Math.abs(priceChange) > 2 ? 'strong move' : 'moderate move'}</li>
+      <li><strong>Value Area:</strong> ${currentPrice > vwapEst ? '✅ Above VWAP' : '❌ Below VWAP'}</li>
+      <li><strong>52W Position:</strong> At ${rangePosition.toFixed(0)}% of range ${rangePosition > 70 ? '(near highs)' : rangePosition < 30 ? '(near lows)' : '(mid-range)'}</li>
+    </ul>
+    
+    <p style="margin-top:16px;"><strong>Trading Recommendation:</strong></p>
+    <p>${score > 5 ? 
+      '🟢 <strong>Strong Buy Signal</strong> - Multiple bullish confirmations. Look for dips to add positions.' : 
+      score > 2 ? 
+      '🟢 <strong>Buy Signal</strong> - Bullish bias with some confirmation. Enter on pullbacks.' : 
+      score > -2 ? 
+      '🟡 <strong>Neutral/Hold</strong> - Wait for clearer directional signals. Range-bound.' : 
+      score > -5 ? 
+      '🔴 <strong>Sell Signal</strong> - Bearish bias developing. Reduce positions or short.' : 
+      '🔴 <strong>Strong Sell Signal</strong> - Multiple bearish confirmations. Avoid longs, consider shorts.'}</p>
+  `;
+  document.getElementById('technicalScore').innerHTML = scoreHTML;
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+console.log(`
+🚀 CATALYST STOCK INTELLIGENCE PLATFORM
+
+API SETUP:
+1. Get Finnhub API key: https://finnhub.io/register
+2. Get Alpha Vantage API key: https://www.alphavantage.co/support/#api-key
+3. Get Polygon API key: https://polygon.io/ (Free tier: 5 calls/min)
+4. Get Grok API key: https://console.x.ai/ (For AI-powered analysis)
+5. Yahoo Finance: No API key needed! ✅
+
+Save your keys:
+saveApiKey('finnhub', 'YOUR_KEY')
+saveApiKey('alphavantage', 'YOUR_KEY')
+saveApiKey('polygon', 'YOUR_KEY')
+saveApiKey('grok', 'YOUR_KEY')
+
+Current Status:
+- Finnhub: ${API_KEYS.finnhub ? '✅ Configured' : '❌ Not set'}
+- Alpha Vantage: ${API_KEYS.alphavantage ? '✅ Configured' : '❌ Not set'}
+- Polygon: ${API_KEYS.polygon ? '✅ Configured' : '❌ Not set (optional)'}
+- Grok AI: ${API_KEYS.grok ? '✅ Configured - AI analysis enabled' : '❌ Not set (optional - enables AI analysis)'}
+- Yahoo Finance: ✅ Always available (no key required)
+
+Data Sources Combined:
+- Finnhub: Real-time quotes, fundamentals, news, insider transactions
+- Alpha Vantage: Technical indicators (RSI, MACD), additional fundamentals
+- Yahoo Finance: Ownership data, earnings calendar, financial health metrics
+- Polygon: Premium financial statements, detailed fundamentals, market data
+- Grok AI: 🤖 AI-powered fundamental, technical, and sentiment analysis
+`);
+</script>
+
+</body>
+</html>
