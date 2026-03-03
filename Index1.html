@@ -257,11 +257,10 @@ main{margin:0;padding:20px 32px 48px;width:100%;}
         <div class="field field-sm">
           <label>Time Window</label>
           <select id="catalystWindow">
-            <option value="1">Last 24 Hours</option>
-            <option value="3">Last 3 Days</option>
-            <option value="7" selected>Last Week</option>
-            <option value="14">Last 2 Weeks</option>
-            <option value="30">Last Month</option>
+            <option value="0.042">Last Hour</option>
+            <option value="0.25">Last 6 Hours</option>
+            <option value="1" selected>Last 24 Hours</option>
+            <option value="7">Last Week</option>
           </select>
         </div>
         <div class="field field-sm">
@@ -590,11 +589,11 @@ main{margin:0;padding:20px 32px 48px;width:100%;}
 // ============================================================
 
 const API_KEYS = {
-  finnhub: localStorage.getItem('finnhub_api_key') || 'd67pmm9r01qobepit6d0d67pmm9r01qobepit6dg',
-  alphavantage: localStorage.getItem('alphavantage_api_key') || 'V2NXLTSQ62C36CJ5',
+  finnhub: localStorage.getItem('finnhub_api_key') || '',
+  alphavantage: localStorage.getItem('alphavantage_api_key') || '',
   perplexity: localStorage.getItem('perplexity_api_key') || '',
-  polygon: localStorage.getItem('polygon_api_key') || 'i1i4ah69ZXpNVAE5UL6ByQK1nivF7y9x',
-  grok: localStorage.getItem('grok_api_key') || 'xai-DjWs3dqijVRgkqH43mdCQWe0aml4Op0LBSu7sXxChpqjZVi3jx0KQSaUngXjSdDZdopifeuF8JYgchqR'
+  polygon: localStorage.getItem('polygon_api_key') || '',
+  grok: localStorage.getItem('grok_api_key') || ''
 };
 
 function saveApiKey(provider, key) {
@@ -979,44 +978,103 @@ const GrokAPI = {
       profitMargin: yFinancial?.profitMargins?.raw,
       roe: yFinancial?.returnOnEquity?.raw,
       revenueGrowth: yFinancial?.revenueGrowth?.raw,
-      earningsGrowth: yStats?.earningsQuarterlyGrowth?.raw
+      earningsGrowth: yStats?.earningsQuarterlyGrowth?.raw,
+      enterpriseValue: yStats?.enterpriseValue?.raw || yFinancial?.enterpriseValue?.raw,
+      revenue: yFinancial?.totalRevenue?.raw,
+      freeCashFlow: yFinancial?.freeCashflow?.raw,
+      sharesOutstanding: profile.shareOutstanding ? profile.shareOutstanding * 1000000 : null,
+      sharesFloat: yStats?.floatShares?.raw,
+      shortFloat: yStats?.shortPercentOfFloat?.raw,
+      shortInterest: yStats?.sharesShort?.raw,
+      high52: ySummary?.fiftyTwoWeekHigh?.raw || quote.h,
+      low52: ySummary?.fiftyTwoWeekLow?.raw || quote.l,
+      insiderOwnership: yStats?.heldPercentInsiders?.raw,
+      institutionalOwnership: yStats?.heldPercentInstitutions?.raw
     };
     
-    const prompt = `You are a financial analyst. Analyze these fundamental metrics for ${ticker} (${profile.name}):
+    const prompt = `You are a highly intelligent and accurate sentiment analyzer specializing in the financial markets. Analyze the sentiment and fundamentals for ${ticker} (${profile.name}).
 
-Company: ${fundamentalData.company}
-Sector: ${fundamentalData.sector}
-Current Price: $${fundamentalData.currentPrice?.toFixed(2)} (${fundamentalData.priceChange > 0 ? '+' : ''}${fundamentalData.priceChange?.toFixed(2)}%)
-Market Cap: ${fundamentalData.marketCap ? '$' + (fundamentalData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+PART 1 - SENTIMENT ANALYSIS:
+Evaluate the immediate market reaction, recent news impact, and technical volatility.
+- Determine a sentiment category: "Positive", "Neutral", or "Negative"
+- Calculate a numerical score between 0 (extremely negative) and 10 (extremely positive)
+- Provide a concise rationale explaining the short-term sentiment with detailed response and appropriate headlines for major events
 
-Valuation:
-- P/E Ratio: ${fundamentalData.peRatio?.toFixed(2) || 'N/A'}
-- Forward P/E: ${fundamentalData.forwardPE?.toFixed(2) || 'N/A'}
-- P/B Ratio: ${fundamentalData.pbRatio?.toFixed(2) || 'N/A'}
+Current Market Data:
+- Current Price: $${fundamentalData.currentPrice?.toFixed(2)}
+- Daily Change: ${fundamentalData.priceChange > 0 ? '+' : ''}${fundamentalData.priceChange?.toFixed(2)}%
+- Sector: ${fundamentalData.sector}
 
-Financial Health:
-- Debt/Equity: ${fundamentalData.debtToEquity?.toFixed(2) || 'N/A'}
-- Current Ratio: ${fundamentalData.currentRatio?.toFixed(2) || 'N/A'}
-- Profit Margin: ${fundamentalData.profitMargin ? (fundamentalData.profitMargin * 100).toFixed(2) + '%' : 'N/A'}
-- ROE: ${fundamentalData.roe ? (fundamentalData.roe * 100).toFixed(2) + '%' : 'N/A'}
+PART 2 - COMPREHENSIVE FUNDAMENTAL ANALYSIS:
+Please provide detailed analysis for the following categories using all available online resources. Get accurate information in human-readable format:
 
-Growth:
-- Revenue Growth: ${fundamentalData.revenueGrowth ? (fundamentalData.revenueGrowth * 100).toFixed(2) + '%' : 'N/A'}
-- Earnings Growth: ${fundamentalData.earningsGrowth ? (fundamentalData.earningsGrowth * 100).toFixed(2) + '%' : 'N/A'}
+Financial Metrics to Analyze:
+- Market Cap: ${fundamentalData.marketCap ? '$' + (fundamentalData.marketCap / 1e9).toFixed(2) + 'B' : 'Search online'}
+- Enterprise Value: ${fundamentalData.enterpriseValue ? '$' + (fundamentalData.enterpriseValue / 1e9).toFixed(2) + 'B' : 'Search online'}
+- P/E Ratio (TTM): ${fundamentalData.peRatio?.toFixed(2) || 'Search online'}
+- Forward P/E: ${fundamentalData.forwardPE?.toFixed(2) || 'Search online'}
+- Profit Margin: ${fundamentalData.profitMargin ? (fundamentalData.profitMargin * 100).toFixed(2) + '%' : 'Search online'}
+- Free Cash Flow: ${fundamentalData.freeCashFlow ? '$' + (fundamentalData.freeCashFlow / 1e9).toFixed(2) + 'B' : 'Search online'}
+- Total Debt & Altman Z-Score: Search online for accurate debt metrics and Z-Score
+- Revenue (TTM): ${fundamentalData.revenue ? '$' + (fundamentalData.revenue / 1e9).toFixed(2) + 'B' : 'Search online'}
+- Shares Outstanding: ${fundamentalData.sharesOutstanding?.toLocaleString() || 'Search online'}
+- Shares Float: ${fundamentalData.sharesFloat?.toLocaleString() || 'Search online'}
+- Short Float %: ${fundamentalData.shortFloat ? (fundamentalData.shortFloat * 100).toFixed(2) + '%' : 'Search online'}
+- Short Interest: ${fundamentalData.shortInterest?.toLocaleString() || 'Search online'}
+- 52 Week High: $${fundamentalData.high52?.toFixed(2) || 'Search online'}
+- 52 Week Low: $${fundamentalData.low52?.toFixed(2) || 'Search online'}
+- Insider Ownership %: ${fundamentalData.insiderOwnership ? (fundamentalData.insiderOwnership * 100).toFixed(2) + '%' : 'Search online from finviz.com or similar'}
+- Institutional Ownership %: ${fundamentalData.institutionalOwnership ? (fundamentalData.institutionalOwnership * 100).toFixed(2) + '%' : 'Search online from finviz.com or similar'}
+- Insider Transactions (Last 3 Months): Search online for recent insider buying/selling
+- Institutional Transactions: Search online for recent institutional changes
+- Next Earnings Date: Search online for upcoming earnings
+- Earnings Expectations: Search online for analyst estimates
+- Previous Earnings Results: Search online for last quarter's performance vs estimates
+- Top 5 Competitors: Search online and list with market cap, sorted by size
 
-Provide a concise 3-paragraph analysis:
-1. Valuation Assessment (overvalued/fairly valued/undervalued and why)
-2. Financial Health & Risk Assessment
-3. Investment Outlook (bullish/neutral/bearish with specific reasoning)
+OUTPUT FORMAT REQUIREMENTS:
+1. Start with shortTermSentiment section:
+   shortTermSentiment:
+     category: [Positive/Neutral/Negative]
+     score: [0-10]
+     rationale: [Detailed explanation with headlines]
 
-Keep it professional and actionable.`;
+2. Then provide ALL financial metrics in HTML TABLE format like this:
+
+<table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+<tr style="background: var(--surface2); border-bottom: 1px solid var(--border);">
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Metric</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Value</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Analysis/Notes</th>
+</tr>
+<tr style="border-bottom: 1px solid var(--border);">
+  <td style="padding: 10px;">Market Cap</td>
+  <td style="padding: 10px;">[value]</td>
+  <td style="padding: 10px;">[interpretation]</td>
+</tr>
+<!-- ... continue for ALL metrics ... -->
+</table>
+
+3. Include a COMPETITORS table:
+
+<table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+<tr style="background: var(--surface2); border-bottom: 1px solid var(--border);">
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Rank</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Company</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Ticker</th>
+  <th style="padding: 12px; text-align: left; color: var(--accent);">Market Cap</th>
+</tr>
+<!-- ... top 5 competitors sorted by market cap ... -->
+</table>
+
+DO NOT output as JSON. Output as formatted text and HTML tables as shown above.`;
 
     const messages = [
-      { role: 'system', content: 'You are an expert financial analyst providing clear, actionable investment analysis.' },
+      { role: 'system', content: 'You are an expert financial analyst with access to real-time market data. Provide comprehensive, accurate analysis with data from reliable financial sources. Format output as HTML tables, not JSON.' },
       { role: 'user', content: prompt }
     ];
     
-    return await this.callGrok(messages, 0.5);
+    return await this.callGrok(messages, 0.3);
   },
   
   async analyzeTechnical(ticker, technicalData) {
@@ -1227,14 +1285,22 @@ document.getElementById('runCatalystBtn')?.addEventListener('click', async () =>
       return;
     }
     
-    const days = parseInt(document.getElementById('catalystWindow').value);
+    const days = parseFloat(document.getElementById('catalystWindow').value);
     const maxResults = parseInt(document.getElementById('catalystMaxResults').value);
+    
+    // Calculate cutoff timestamp
+    const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
     
     // Fetch market news from Finnhub
     const news = await StockAPI.Finnhub.getMarketNews(days);
     
-    // Filter news by keywords
+    // Filter news by keywords AND time window
     const filteredNews = news.filter(article => {
+      // Check if article is within time window
+      const articleTime = article.datetime * 1000; // Convert to milliseconds
+      if (articleTime < cutoffTime) return false;
+      
+      // Check if article matches keywords
       const text = (article.headline + ' ' + article.summary).toLowerCase();
       return activeKeywords.some(keyword => text.includes(keyword));
     }).slice(0, maxResults);
@@ -1393,9 +1459,9 @@ document.getElementById('runFundamentalBtn')?.addEventListener('click', async ()
                         border: 1px solid rgba(0,166,126,.2); border-radius: 8px; padding: 16px; margin-top: 16px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <span style="font-size: 20px;">🤖</span>
-                <strong style="color: var(--gpt); font-family: 'DM Mono'; font-size: 11px; letter-spacing: 0.1em;">GROK AI FUNDAMENTAL ANALYSIS</strong>
+                <strong style="color: var(--gpt); font-family: 'DM Mono'; font-size: 11px; letter-spacing: 0.1em;">GROK AI COMPREHENSIVE ANALYSIS</strong>
               </div>
-              <div style="color: var(--text); line-height: 1.7; white-space: pre-wrap;">${analysis}</div>
+              <div style="color: var(--text); line-height: 1.7;">${analysis}</div>
             </div>
           `;
         }
@@ -1637,39 +1703,6 @@ function displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDeta
               (m.freeCashFlowTTM ? m.freeCashFlowTTM * 1000000 : null);
   rows.push(['Free Cash Flow', fcf ? StockAPI.formatNumber(fcf) : 'N/A']);
   
-  // Debt to Equity (calculated or from sources)
-  const totalDebt = pFinancial.financials?.balance_sheet?.long_term_debt?.value ||
-                    yBalance?.totalDebt?.raw || 
-                    yBalance?.longTermDebt?.raw;
-  const totalEquity = pFinancial.financials?.balance_sheet?.equity?.value ||
-                      yBalance?.totalStockholderEquity?.raw;
-  let debtToEquity = null;
-  
-  if (totalDebt && totalEquity && totalEquity > 0) {
-    debtToEquity = totalDebt / totalEquity;
-  } else {
-    debtToEquity = yFinancial?.debtToEquity?.raw || 
-                   yStats?.debtToEquity?.raw ||
-                   m.totalDebtToEquityTTM;
-  }
-  rows.push(['Debt to Equity', debtToEquity ? debtToEquity.toFixed(2) : 'N/A']);
-  
-  // Current Ratio (calculated or from sources)
-  const currentAssets = pFinancial.financials?.balance_sheet?.current_assets?.value ||
-                        yBalance?.totalCurrentAssets?.raw;
-  const currentLiabilities = pFinancial.financials?.balance_sheet?.current_liabilities?.value ||
-                             yBalance?.totalCurrentLiabilities?.raw;
-  let currentRatio = null;
-  
-  if (currentAssets && currentLiabilities && currentLiabilities > 0) {
-    currentRatio = currentAssets / currentLiabilities;
-  } else {
-    currentRatio = yFinancial?.currentRatio?.raw || 
-                   yStats?.currentRatio?.raw ||
-                   m.currentRatioTTM;
-  }
-  rows.push(['Current Ratio', currentRatio ? currentRatio.toFixed(2) : 'N/A']);
-  
   // Price ranges (prefer Polygon snapshot for real-time, then Yahoo)
   const high52 = pSnapshot.day?.h || ySummary?.fiftyTwoWeekHigh?.raw || m['52WeekHigh'];
   const low52 = pSnapshot.day?.l || ySummary?.fiftyTwoWeekLow?.raw || m['52WeekLow'];
@@ -1684,9 +1717,6 @@ function displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDeta
   if (low52 && quote.c) {
     rows.push(['% from 52W Low', (((quote.c - low52) / low52 * 100).toFixed(2) + '%')]);
   }
-  
-  // Additional metrics
-  rows.push(['---', '---']);
   
   // Shares Outstanding (Polygon → Yahoo → Finnhub)
   const sharesOutstanding = pDetails.weighted_shares_outstanding ||
@@ -1710,15 +1740,11 @@ function displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDeta
     rows.push(['Dividend Yield', divYield.toFixed(2) + '%']);
   }
   
-  if (yStats?.beta?.raw) {
-    rows.push(['Beta', yStats.beta.raw.toFixed(2)]);
-  } else if (m.beta) {
-    rows.push(['Beta', m.beta.toFixed(2)]);
-  }
-  
+  // Volume in millions
   if (ySummary?.averageVolume?.raw || ySummary?.volume?.raw) {
     const avgVol = ySummary.averageVolume?.raw || ySummary.volume?.raw;
-    rows.push(['Avg Volume (10D)', StockAPI.formatNumber(avgVol)]);
+    const volInMillions = (avgVol / 1000000).toFixed(2) + 'M';
+    rows.push(['Avg Volume (10D)', volInMillions]);
   }
   
   // EBITDA (Polygon → Yahoo)
@@ -1734,22 +1760,17 @@ function displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDeta
                     yBalance?.cash?.raw || 
                     yBalance?.totalCash?.raw;
   if (totalCash) {
-  } else if (yFinancial?.ebitda?.raw) {
-    rows.push(['EBITDA', StockAPI.formatNumber(yFinancial.ebitda.raw)]);
-  }
-  
-  // Total Cash
-  if (yBalance?.cash?.raw || yBalance?.totalCash?.raw) {
-    const cash = yBalance.cash?.raw || yBalance.totalCash?.raw;
-    rows.push(['Total Cash', StockAPI.formatNumber(cash)]);
+    rows.push(['Total Cash', StockAPI.formatNumber(totalCash)]);
   }
   
   // Total Debt
+  const totalDebt = pFinancial.financials?.balance_sheet?.long_term_debt?.value ||
+                    yBalance?.totalDebt?.raw || 
+                    yBalance?.longTermDebt?.raw;
   if (totalDebt) {
     rows.push(['Total Debt', StockAPI.formatNumber(totalDebt)]);
   }
   
-  rows.push(['---', '---']);
   rows.push(['Data Sources', 'Yahoo Finance (comprehensive) + Finnhub (backup)']);
   
   const tableHTML = rows.map(([label, value]) => 
