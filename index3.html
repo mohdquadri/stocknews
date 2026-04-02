@@ -4722,20 +4722,9 @@ navLinks.forEach(link => {
     if (view === 'technical' || view === 'movers' || view === 'settings' || view === 'charts') {
       sidebar.style.display = 'none';
       container.style.gridTemplateColumns = '1fr';
-      // Also expand the left content wrapper
-      const leftContent = container.children[0];
-      if (leftContent) {
-        leftContent.style.width = '100%';
-        leftContent.style.maxWidth = 'none';
-      }
     } else {
       sidebar.style.display = 'block';
       container.style.gridTemplateColumns = '1fr 320px';
-      const leftContent = container.children[0];
-      if (leftContent) {
-        leftContent.style.width = '';
-        leftContent.style.maxWidth = '';
-      }
     }
 
     // Load movers data when switching to movers tab
@@ -4811,8 +4800,6 @@ analysisTabs.forEach(tab => {
     const selectedView = document.getElementById(`${targetView}View`);
     if (selectedView) {
       selectedView.style.display = 'block';
-      selectedView.style.width = '100%';
-      selectedView.style.maxWidth = 'none';
       
       // Handle full-width for technical/scanner
       const container = document.querySelector('.container');
@@ -4820,20 +4807,9 @@ analysisTabs.forEach(tab => {
       if (targetView === 'technical' || targetView === 'scanner') {
         sidebar.style.display = 'none';
         container.style.gridTemplateColumns = '1fr';
-        // Also expand the left content wrapper
-        const leftContent = container.children[0];
-        if (leftContent) {
-          leftContent.style.width = '100%';
-          leftContent.style.maxWidth = 'none';
-        }
       } else {
         sidebar.style.display = 'block';
         container.style.gridTemplateColumns = '1fr 320px';
-        const leftContent = container.children[0];
-        if (leftContent) {
-          leftContent.style.width = '';
-          leftContent.style.maxWidth = '';
-        }
       }
     }
   });
@@ -5653,92 +5629,88 @@ const GrokAPI = {
       return null;
     }
     
-    // Try latest models in order of preference
-    const models = [
-      'grok-4.20-reasoning',
-      'grok-2-1212',
-      'grok-2-latest',
-      'grok-beta'
-    ];
-    
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🔄 GROK API CALL STARTING');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('Will try models:', models.join(', '));
+    console.log('Model: grok-4-1-fast-reasoning');
     console.log('Temperature:', temperature);
     console.log('Max Tokens:', maxTokens);
+    console.log('Messages:', messages);
     console.log('API Key (first 15 chars):', API_KEYS.grok.substring(0, 15) + '...');
     
-    for (const model of models) {
-      console.log(`\n🔄 Trying model: ${model}`);
-      
-      const requestBody = { 
-        model: model, 
-        messages, 
-        temperature, 
-        max_tokens: maxTokens 
-      };
-      
-      try {
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${API_KEYS.grok}` 
-          },
-          body: JSON.stringify(requestBody)
-        });
-      
-        console.log(`Response Status for ${model}:`, response.status);
-        console.log('Response OK:', response.ok);
-      
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`❌ Model ${model} failed (${response.status}):`, errorText);
-        
-          if (response.status === 401) {
-            console.error('🔑 Invalid API key - stopping all attempts');
-            return null;
-          }
-          
-          if (response.status === 404) {
-            console.log(`Model ${model} not found, trying next...`);
-            continue;
-          }
-          
-          if (response.status === 429) {
-            console.log('Rate limited, trying next model...');
-            continue;
-          }
-          
-          // For other errors, try next model
-          continue;
-        }
-      
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || null;
-      
-        if (!content) {
-          console.warn(`⚠️ Model ${model} returned empty content, trying next...`);
-          continue;
-        }
-      
-        console.log(`✅ SUCCESS with model: ${model}`);
-        console.log('Content length:', content.length, 'characters');
-        console.log('Content preview:', content.substring(0, 200));
-      
-        return content;
-      
-      } catch (e) {
-        console.error(`❌ Model ${model} exception:`, e.message);
-        continue;
-      }
-    }
+    const requestBody = { 
+      model: 'grok-4-1-fast-reasoning', 
+      messages, 
+      temperature, 
+      max_tokens: maxTokens 
+    };
     
-    // All models failed
-    console.error('❌ All Grok models failed');
-    console.error('💡 Please check your Grok API key at: https://console.x.ai/');
-    return null;
+    console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+    
+    try {
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${API_KEYS.grok}` 
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('Response Status:', response.status);
+      console.log('Response OK:', response.ok);
+      console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ ERROR RESPONSE TEXT:', errorText);
+        
+        let err;
+        try {
+          err = JSON.parse(errorText);
+        } catch (e) {
+          err = { error: { message: errorText } };
+        }
+        
+        console.error(`❌ Grok API error ${response.status}:`, err);
+        
+        if (response.status === 401) {
+          console.error('🔑 Invalid API key. Please check your Grok API key in Settings.');
+        } else if (response.status === 429) {
+          console.error('⏳ Rate limit exceeded. Please wait and try again.');
+        } else if (response.status === 400) {
+          console.error('📋 Bad request - check model name or request format');
+        }
+        
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log('✅ FULL RESPONSE DATA:', JSON.stringify(data, null, 2));
+      
+      const content = data.choices?.[0]?.message?.content || null;
+      
+      if (!content) {
+        console.warn('⚠️ Grok returned empty content');
+        console.log('Choices array:', data.choices);
+        console.log('First choice:', data.choices?.[0]);
+        return null;
+      }
+      
+      console.log('✅ EXTRACTED CONTENT (' + content.length + ' characters):');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(content);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      return content;
+      
+    } catch (e) {
+      console.error('❌ GrokAPI.callGrok EXCEPTION:', e);
+      console.error('Error name:', e.name);
+      console.error('Error message:', e.message);
+      console.error('Error stack:', e.stack);
+      return null;
+    }
   },
 
   async analyzeFundamentals(ticker, profile, metrics, yahooStats, quote) {
@@ -5827,7 +5799,7 @@ Rules:
       return '<div id="ai-conclusion"><p style="color:#999;">Insufficient technical data available. Please ensure price data is loaded.</p></div>';
     }
     
-    const prompt = `You are a professional quantitative analyst. Provide comprehensive technical analysis for ${ticker}.
+    const prompt = `You are a professional quantitative analyst. Provide technical analysis for ${ticker}.
 
 TIMEFRAME: ${tfMap[timeframe] || 'Daily'}
 TRADING STYLE: ${styleMap[tradingStyle] || 'Swing Trading'}
@@ -5844,28 +5816,36 @@ LIVE TECHNICAL DATA:
 • ATR(14): $${technicalData.atr?.toFixed(2)}
 ${technicalData.high52 ? `• 52W High: $${technicalData.high52.toFixed(2)} | 52W Low: $${technicalData.low52.toFixed(2)}` : ''}
 
-Provide analysis covering:
-1. Trend direction and bias (bullish/bearish/neutral)
-2. Volatility assessment using ATR
-3. Key support and resistance levels
-4. Trading scenarios (bullish, bearish, neutral)
-5. Risk management (stop loss, position sizing)
-6. Clear entry/target/stop recommendation
+REQUIRED: You MUST output EXACTLY 6 HTML divs with these EXACT id attributes:
 
-Format as HTML with headers and paragraphs. Use <h3> for section titles and <p> for content.
-Be specific with price levels. Keep it professional and actionable.
+<div id="ai-trend">Analyze the trend direction. Is it bullish, bearish, or neutral? Mention EMA alignment and price structure. 2-3 sentences.</div>
 
-CRITICAL: Output ONLY HTML, no markdown, no code fences (no \`\`\`).`;
+<div id="ai-volatility">Analyze volatility using ATR. Is volatility expanding or contracting? What does this mean for potential price movement? 2-3 sentences.</div>
+
+<div id="ai-levels">List the key support and resistance levels with specific prices from the data above. Format: Support at $X, Resistance at $Y. 2-3 sentences.</div>
+
+<div id="ai-scenarios">Describe three scenarios: 1) Bullish scenario with price target, 2) Bearish scenario with price target, 3) Neutral/consolidation scenario. Use actual price numbers. 3-4 sentences.</div>
+
+<div id="ai-risk">Assess risk. Suggest stop loss levels and position sizing based on ATR. Where should invalidation be? 2-3 sentences.</div>
+
+<div id="ai-conclusion">CLEAR RECOMMENDATION in this format: "Entry: $X | Stop Loss: $Y | Target: $Z | Bias: BULLISH/BEARISH/NEUTRAL | Confidence: X%". Use actual prices from the data. 1-2 sentences.</div>
+
+CRITICAL RULES:
+1. Output MUST be exactly 6 div tags with id attributes
+2. Use ONLY the id names listed above (ai-trend, ai-volatility, ai-levels, ai-scenarios, ai-risk, ai-conclusion)
+3. NO markdown, NO code fences (no \`\`\`), NO extra commentary
+4. Use actual price numbers from the data provided
+5. Be specific and professional`;
 
     return this.callGrok(
       [{ 
         role: 'system', 
-        content: 'You are a professional quantitative analyst. Output ONLY valid HTML with headers and paragraphs. No markdown, no code fences.' 
+        content: 'You are a professional quantitative analyst. You MUST output exactly 6 HTML div elements with the exact id attributes specified. No markdown, no code fences, no extra text outside the divs.' 
       }, { 
         role: 'user', 
         content: prompt 
       }],
-      0.4, 3000
+      0.4, 2500
     );
   },
 
@@ -6589,17 +6569,7 @@ document.getElementById('runTechnical').addEventListener('click', async () => {
 
   const resultsContainer = document.getElementById('technicalResults');
   resultsContainer.style.display = 'block';
-  resultsContainer.style.width = '100%';
-  resultsContainer.style.maxWidth = 'none';
   resultsContainer.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div> Fetching market data...</div></div>';
-  
-  // Ensure full-width layout
-  const container = document.querySelector('.container');
-  const sidebar = container.children[1];
-  if (sidebar) {
-    sidebar.style.display = 'none';
-    container.style.gridTemplateColumns = '1fr';
-  }
 
   try {
     const [quote, historicalData] = await Promise.all([
@@ -6649,7 +6619,12 @@ document.getElementById('runTechnical').addEventListener('click', async () => {
         </div>
       </div>
 
-      <div class="card"><h2>🤖 AI Technical Analysis</h2><div class="section-content" id="ai-trend"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
+      <div class="card"><h2>1️⃣ Trend Bias</h2><div class="section-content" id="ai-trend"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
+      <div class="card"><h2>2️⃣ Volatility &amp; Expansion</h2><div class="section-content" id="ai-volatility"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
+      <div class="card"><h2>3️⃣ Key Levels &amp; Fibonacci Zones</h2><div class="section-content" id="ai-levels"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
+      <div class="card"><h2>4️⃣ Trade Scenarios</h2><div class="trade-scenarios" id="ai-scenarios"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
+      <div class="card"><h2>5️⃣ Risk Assessment</h2><div class="section-content" id="ai-risk"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
+      <div class="card"><h2>6️⃣ Technical Score &amp; Recommendation</h2><div id="ai-conclusion"><div class="loading"><div class="spinner"></div> AI analyzing...</div></div></div>
 
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="tradingview_chart" style="height:750px;width:100%;"></div>
@@ -6674,36 +6649,99 @@ document.getElementById('runTechnical').addEventListener('click', async () => {
     console.log('🤖 Calling Grok for technical analysis...');
     const aiResponse = await GrokAPI.analyzeTechnical(ticker, technicalData, tradingStyle, timeframe);
 
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📊 TECHNICAL ANALYSIS RESPONSE PROCESSING');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('Response received:', !!aiResponse);
+    console.log('Response length:', aiResponse?.length || 0);
+
     if (aiResponse && aiResponse.trim().length > 0) {
       console.log('✅ Grok technical analysis received');
+      console.log('Raw response preview:', aiResponse.substring(0, 500));
       
-      // Display the complete analysis in the single AI section
-      const aiSection = document.getElementById('ai-trend');
-      if (aiSection) {
-        aiSection.innerHTML = `
-          <div style="background:linear-gradient(135deg,rgba(0,166,126,.08),rgba(0,166,126,.02));border:1px solid rgba(0,166,126,.2);border-radius:8px;padding:20px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-              <span style="font-size:20px;">🤖</span>
-              <strong style="color:#00a67e;font-size:11px;letter-spacing:0.1em;">GROK AI COMPREHENSIVE ANALYSIS</strong>
-            </div>
-            <div style="color:#1c1c1c;line-height:1.8;">
-              ${aiResponse}
-            </div>
-          </div>
-        `;
+      // Try to parse as HTML with specific IDs first
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(aiResponse, 'text/html');
+      
+      console.log('Parsed document:', doc);
+      console.log('Document body HTML:', doc.body.innerHTML);
+      
+      const sectionIds = ['ai-trend', 'ai-volatility', 'ai-levels', 'ai-scenarios', 'ai-risk', 'ai-conclusion'];
+      
+      let sectionsFound = 0;
+      sectionIds.forEach(id => {
+        const aiEl = doc.getElementById(id);
+        const targetEl = document.getElementById(id);
+        
+        console.log(`Section ${id}:`);
+        console.log('  - Found in response:', !!aiEl);
+        console.log('  - Found in page:', !!targetEl);
+        
+        if (aiEl && targetEl) {
+          targetEl.innerHTML = aiEl.innerHTML;
+          sectionsFound++;
+          console.log(`  ✅ Injected section ${id}`);
+        }
+      });
+      
+      console.log(`Total sections found and injected: ${sectionsFound}/6`);
+      
+      if (sectionsFound === 0) {
+        console.warn('⚠️ No sections with IDs found. Using FALLBACK display method.');
+        console.log('Grok did not return HTML with specific IDs. Displaying raw response...');
+        
+        // FALLBACK: Split response into sections and display
+        // Try to intelligently parse the response
+        const sections = [
+          { id: 'ai-trend', keywords: ['trend', 'direction', 'bias', 'ema', 'moving average'] },
+          { id: 'ai-volatility', keywords: ['volatility', 'atr', 'expansion', 'range', 'bollinger'] },
+          { id: 'ai-levels', keywords: ['support', 'resistance', 'levels', 'fibonacci', 'price target'] },
+          { id: 'ai-scenarios', keywords: ['scenario', 'bullish', 'bearish', 'neutral', 'target'] },
+          { id: 'ai-risk', keywords: ['risk', 'stop loss', 'position', 'invalidation'] },
+          { id: 'ai-conclusion', keywords: ['conclusion', 'recommendation', 'entry', 'bias', 'confidence'] }
+        ];
+        
+        // Split by common section markers or just divide the text
+        const paragraphs = aiResponse.split(/\n\n+/).filter(p => p.trim().length > 0);
+        
+        if (paragraphs.length >= 6) {
+          // If we have 6+ paragraphs, assign them to sections
+          paragraphs.forEach((para, idx) => {
+            if (idx < 6) {
+              const targetEl = document.getElementById(sectionIds[idx]);
+              if (targetEl) {
+                targetEl.innerHTML = `<p style="line-height:1.8;">${para.trim()}</p>`;
+                console.log(`  ✅ Assigned paragraph ${idx + 1} to ${sectionIds[idx]}`);
+              }
+            }
+          });
+        } else {
+          // If fewer paragraphs, just show the whole response in each section
+          sectionIds.forEach(id => {
+            const targetEl = document.getElementById(id);
+            if (targetEl) {
+              targetEl.innerHTML = `<div style="line-height:1.8;">${aiResponse}</div>`;
+            }
+          });
+          console.log('  ℹ️ Showing full response in all sections');
+        }
       }
-      
+
+      // Style the conclusion section distinctively
+      const conclusionEl = document.getElementById('ai-conclusion');
+      if (conclusionEl && conclusionEl.innerHTML && !conclusionEl.querySelector('.loading')) {
+        const text = conclusionEl.innerHTML;
+        if (!text.includes('AI analysis unavailable')) {
+          conclusionEl.outerHTML = `<div id="ai-conclusion" style="background:rgba(0,166,126,0.06);border:1px solid rgba(0,166,126,0.25);border-radius:8px;padding:18px 20px;font-size:14px;line-height:1.8;">${text}</div>`;
+        }
+      }
     } else {
-      // Grok unavailable or returned empty
+      // Grok unavailable or returned empty — show fallback for each section
       console.warn('⚠️ Grok technical analysis returned empty or null');
-      const aiSection = document.getElementById('ai-trend');
-      if (aiSection) {
-        aiSection.innerHTML = `
-          <div style="padding:16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;">
-            <p style="color:#999;margin:0;font-size:13px;">⚠️ AI analysis unavailable. Check browser console (F12) for details or configure your Grok API key in Settings.</p>
-          </div>
-        `;
-      }
+      ['ai-trend','ai-volatility','ai-levels','ai-scenarios','ai-risk','ai-conclusion'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<p style="color:#888;">⚠️ AI analysis unavailable. Check browser console (F12) for details.</p>';
+      });
     }
 
   } catch (error) {
