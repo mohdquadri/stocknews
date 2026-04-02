@@ -1194,8 +1194,8 @@ button:disabled {
 
 <header>
   <div class="logo">
-    Ridvon
-    <span class="logo-badge">Stock trading</span>
+    CATALYST
+    <span class="logo-badge">AI POWERED</span>
   </div>
 
   <div class="search">
@@ -6117,10 +6117,6 @@ function displayKeyMetricsTable(quote, profile, metrics, yahooStats, polygonDeta
 
   const so = pDetails.weighted_shares_outstanding || (profile.shareOutstanding ? profile.shareOutstanding * 1000000 : null);
   if (so) rows.push(['Shares Outstanding', StockAPI.formatShares(so)]);
-  
-  const sharesFloat = pDetails.share_class_shares_outstanding || yStats?.floatShares?.raw || yStats?.impliedSharesOutstanding?.raw;
-  if (sharesFloat) rows.push(['Shares Float', StockAPI.formatShares(sharesFloat)]);
-  
   if (yStats?.forwardEps?.raw) rows.push(['Forward EPS', StockAPI.formatPrice(yStats.forwardEps.raw)]);
   if (ySummary?.dividendYield?.raw) rows.push(['Dividend Yield', (ySummary.dividendYield.raw * 100).toFixed(2) + '%']);
   else if (ySummary?.dividendRate?.raw && quote.c) rows.push(['Dividend Yield', ((ySummary.dividendRate.raw / quote.c) * 100).toFixed(2) + '%']);
